@@ -8,4 +8,4 @@ With this script you can configure an ubuntu system as if it were a gateway, bei
 
 ## Mentions
 
-This script is based of Zentyal Server, many thanks for the developers of Zentyal Server @brunolorente, @jacalvo and other developers
+This script is based of Zentyal Server, many thanks for the developers of Zentyal Server @brunolorente, @novadevs-opensource, @jacalvo and other developers
