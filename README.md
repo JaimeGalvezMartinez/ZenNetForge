@@ -1,5 +1,5 @@
 # ZenNet
-ZenNet is open source small business server, released under the GNU General Public License (GPL) and runs on top of Ubuntu GNU/Linux.
+ZenNet is open source script that configure a gateway server, DHCP Server and more..., released under the GNU General Public License (GPL) and runs on top of Ubuntu GNU/Linux.
 
 With this script you can configure an ubuntu system as if it were a gateway, being able to configure a DHCP server (with mac filter], Firewall, local DNS server, VPN Server, mail server, and more.
 
