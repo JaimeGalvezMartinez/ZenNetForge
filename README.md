@@ -24,7 +24,7 @@ cd ZenNet.sh
 Make the Script Executable:
 
 ```bash
-chmod +x nextcloud_install.sh
+chmod +x ZenNet.sh
 ```
 
 Run the Script as Root:
