@@ -5,7 +5,35 @@ With this script you can configure an ubuntu system as if it were a gateway, bei
 
 Comming soon
 
+## Prerequisites
+
+-  Root Access: This script must be executed with root privileges.
+
+- Supported System: Ubuntu 20.04 or newer (adjustments may be required for other distributions).
+
 ## Installation & Usage
+
+Clone the Repository (or copy the script directly from this repository):
+
+```bash
+git clone https://github.com/TheHellishPandaa/ZenNet.git
+```
+```bash
+cd ZenNet.sh
+```
+Make the Script Executable:
+
+chmod +x nextcloud_install.sh
+
+Run the Script as Root:
+
+    sudo ./ZenNet.sh
+
+
+## License
+
+This project is licensed under the GNU General Public License v3.0. 
+
 
 
 ## Mentions
