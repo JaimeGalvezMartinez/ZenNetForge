@@ -1,7 +1,8 @@
 #!/bin/bash
 # Version 1.2 - November 2024
 # Developer: Jaime Galvez (TheHellishPandaa)
-# Description: Bash script for configuring a Zentyal-like server with gateway, DHCP, SAMBA, OpenSSH, etc.
+# Description: Bash script for configuring gateway server, DHCP, SAMBA, OpenSSH, etc.
+# This Script is released under GNU General public license 
 
 clear
 
