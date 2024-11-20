@@ -13,7 +13,6 @@ fi
 
 configure_firewall() {
 
-clear
 
     echo "==============================================================================="
     echo "=========================== Firewall SETUP ===================================="
@@ -88,7 +87,6 @@ clear
 
 configure_network() {
 
-clear
 
     echo "--------------------------------------"
     echo "Network interfaces in your system:"
@@ -138,7 +136,7 @@ clear
 # Configure gateway server
 
 configure_gateway_server(){
-clear
+
 
 echo "------------------------------------------------"
 echo "----------- MAKE GATEWAY ON UBUNTU -------------"
@@ -219,7 +217,6 @@ echo "Gateway successfully configured on $WAN_INTERFACE and $LAN_INTERFACE."
 # Configure DHCP Server
 configure_dhcp_server() {
 
-    clear
 
     echo "================================="
     echo "Configuring DHCP Server..."
@@ -280,7 +277,6 @@ subnet $network netmask $netmask {
 # Change FQDN Name
 configure_fqdn_name() {
 
-clear
 
     read -p "New FQDN (e.g., server.example.com): " NEW_FQDN
     NEW_HOSTNAME=$(echo $NEW_FQDN | cut -d '.' -f 1)
@@ -299,7 +295,6 @@ clear
 
 install_samba_server() {
 
-clear
 echo "---------------------------------------------------"
 echo "----------- Configure Samba Server ----------------"
 echo "---------------------------------------------------"
@@ -437,8 +432,7 @@ fi
 # function to install Apache, PHP, MySQL server, MySQL client, Certbot, Bind9, Nextcloud, and required configurations to set up the server.
 
 nextcloud_install(){
-# Clear terminal
-clear
+
 
 # Interactive menu for capturing values
 
