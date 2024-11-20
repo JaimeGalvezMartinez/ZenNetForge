@@ -527,8 +527,8 @@ sed -i "s/max_execution_time = .*/max_execution_time = 300/" "$PHP_INI_PATH"
 
 # Download and configure Nextcloud
 echo "Downloading Nextcloud..."
-wget https://download.nextcloud.com/server/releases/nextcloud-${NEXTCLOUD_VERSION}.tar.bz2
-tar -xjf nextcloud-${NEXTCLOUD_VERSION}.tar.bz2
+wget https://download.nextcloud.com/server/releases/nextcloud-22.0.0.tar.bz2
+tar -xjf nextcloud-22.0.0.tar.bz2
 mv nextcloud $NEXTCLOUD_PATH
 chown -R www-data:www-data $NEXTCLOUD_PATH
 chmod -R 755 $NEXTCLOUD_PATH
