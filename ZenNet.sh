@@ -7,7 +7,7 @@
 
 clear
 
-# Comprobamos si el usuario tiene permisos de superusuario
+# Check if exec in superuser permissions. 
 if [[ $EUID -ne 0 ]]; then
    echo "This script must be run with superuser permissions (sudo)"
    exit 1
