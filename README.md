@@ -3,6 +3,7 @@ ZenNet is open source script that configure a gateway server, DHCP Server and mo
 
 With this script you can configure an ubuntu system as if it were a gateway, being able to configure a DHCP server (with mac filter), Firewall, local DNS server, and more.
 
+A Script for set a Server for Enthusiasts
 
 ## Prerequisites
 
