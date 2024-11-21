@@ -218,7 +218,7 @@ echo "Gateway successfully configured on $WAN_INTERFACE and $LAN_INTERFACE."
 
 # Configure DHCP Server
 configure_dhcp_server() {
-
+# A tool for creating and managing a DHCP server with MAC filtering in an Ubuntu 20.04 system or later
 
     echo "================================="
     echo "Configuring DHCP Server..."
