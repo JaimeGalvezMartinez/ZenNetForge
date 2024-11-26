@@ -594,6 +594,7 @@ echo "Database: $DB_NAME"
 echo "Database User: $DB_USER"
 echo "Installation Path: $MOODLE_PATH"
 echo "Domain or IP: $DOMAIN"
+echo "Data Directory: " $dta_directory
 echo -e "Do you want to proceed with the installation? (y/n): "
 
 # Confirmation to proceed with the installation
@@ -630,7 +631,7 @@ mysql -u root -e "FLUSH PRIVILEGES;"
 
 # Install PHP and necessary modules
 echo "Installing PHP  and modules..."
-sudo apt install -y php php-gd php-json php-mbstring php-curl php-xml php-zip php-mysql php-intl php-bz2 php-imagick php-fpm php-cli libapache2-mod-php php-sqlite3 php-pgsql
+sudo apt install -y php php-gd php-json php-mbstring php-curl php-xml php-zip php-mysql php-intl php-bz2 php-imagick php-fpm php-cli libapache2-mod-php php-sqlite3 php-pgsql git
 sudo apt update
 sudo apt install php-curl php-zip
 
