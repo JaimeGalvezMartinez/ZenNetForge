@@ -451,14 +451,10 @@ if [[ $EUID -ne 0 ]]; then
     echo "This script must be run as root." 
     exit 1
 fi
-#!/bin/bash
+
 
 # Interactive Nextcloud Installation Script
 
-echo "==========================================================="
-echo "                   Nextcloud Installation                  "
-echo "==========================================================="
-echo ""
 
 # Check if the user is root
 if [[ $EUID -ne 0 ]]; then
