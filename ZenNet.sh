@@ -478,6 +478,9 @@ echo
 read -p "Enter the Nextcloud installation path (default: /var/www/html/nextcloud): " NEXTCLOUD_PATH
 NEXTCLOUD_PATH=${NEXTCLOUD_PATH:-"/var/www/html/nextcloud"}
 
+read -p "What will be your data directory? (default: /var/www/nextcloud/data): " data_directory
+data_directory=${data_directory:-"/var/www/nextcloud/data"}
+
 # Prompt for domain or IP
 read -p "Enter the domain or IP to access Nextcloud: " DOMAIN
 
