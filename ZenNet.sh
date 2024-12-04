@@ -466,9 +466,9 @@ fi
 read -p "Enter the database name (default: nextcloud_db): " DB_NAME
 DB_NAME=${DB_NAME:-"nextcloud_db"}
 
-# Prompt for database user
-read -p "Enter the database user name (default: nextcloud_user): " DB_USER
-DB_USER=${DB_USER:-"nextcloud_user"}
+echo "++++++++++++++++++++++++++++++++++++"
+echo "+++++++ Database User: Root ++++++++"
+echo "++++++++++++++++++++++++++++++++++++"
 
 # Prompt for database password
 read -sp "Enter the password for the database user: " DB_PASSWORD
@@ -489,6 +489,7 @@ echo -e "\n========================================================"
 echo -e "============ Configuration Summary: ===================="
 echo -e "========================================================\n"
 echo "Database: $DB_NAME"
+echo "Database user: Root"
 echo "Database User: $DB_USER"
 echo "Installation Path: $NEXTCLOUD_PATH"
 echo "Domain or IP: $DOMAIN"
@@ -671,7 +672,60 @@ echo "Please access http://$DOMAIN/moodle to complete setup in the browser."
 echo "---------------------------------------------------------------------"
 }
 
+network_scan(){
+# Function to list active network interfaces
+list_interfaces() {
+    interfaces=$(ip -o -4 addr show up | awk '{print $2}' | sort -u)
+    
+    if [ -z "$interfaces" ]; then
+        echo "No active network interfaces found."
+        exit 1
+    fi
 
+    echo "Available network interfaces:"
+    select interface in $interfaces; do
+        if [ -n "$interface" ]; then
+            echo "You selected interface: $interface"
+            break
+        else
+            echo "Invalid selection. Please try again."
+        fi
+    done
+}
+
+# Function to scan the local network and display connected devices
+scan_network() {
+    list_interfaces
+
+    echo "Scanning devices on the local network using interface $interface..."
+    echo ""
+
+    # Use arp-scan to get connected devices
+    if command -v arp-scan > /dev/null 2>&1; then
+        sudo arp-scan --interface="$interface" --localnet
+    else
+        echo "arp-scan is not installed. Installing it..."
+        sudo apt update && sudo apt install -y arp-scan
+        sudo arp-scan --interface="$interface" --localnet
+    fi
+}
+
+# Interactive menu
+while true; do
+    echo ""
+    echo "--- Connected Devices Scan ---"
+    echo "1. Scan the local network"
+    echo "2. Exit"
+    read -p "Select an option: " option
+
+    case $option in
+        1) scan_network ;;
+        2) echo "Exiting..."; exit 0 ;;
+        *) echo "Invalid option. Please try again." ;;
+    esac
+done
+
+}
 # Main Menu
 while true; do
 
@@ -693,7 +747,8 @@ clear
     echo "7) Configure Firewall"
     echo "8) Install Nextcloud latest version"
     echo "9) Install Moodle Latest Version"
-    echo "10) Exit"
+    echo "10) Network Scan"
+    echo "11) Exit"
     read -p "Choose an option: " opcion
 
     case $opcion in
@@ -706,7 +761,8 @@ clear
         7) configure_firewall ;;
         8) nextcloud_install ;;
         9) moodle_install ;;
-        10) echo "Exiting. Goodbye!"; break ;;
+        10) network_scan ;;
+        11) echo "Exiting. Goodbye!"; break ;;
         *) echo "Invalid option." ;;
     esac
 done
