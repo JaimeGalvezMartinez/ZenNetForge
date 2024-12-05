@@ -1,4 +1,5 @@
 
+
 #!/bin/bash
 # Version 1.2 - November 2024
 # Developer: Jaime Galvez (TheHellishPandaa)
@@ -9,7 +10,7 @@
 clear
 
 # Check if exec in superuser permissions. 
-if [[ $EUID -ne 0 ]]; then
+if [ $EUID -ne 0 ]; then
    echo "This script must be run with superuser permissions (sudo)"
    exit 1
 fi
@@ -164,7 +165,7 @@ read -p "Enter the WAN Interface: " WAN_INTERFACE
 read -p "Enter the LAN Interface: " LAN_INTERFACE
 
 # Network Interface Variables
-WAN_INTERFACE=$WAN_INTERFACE  #WAN_INTERFACE 
+WAN_INTERFACE=$WAN_INTERFACE  #WAN_INTERFACE
 LAN_INTERFACE=$LAN_INTERFACE  #LAN interface
 
 # Check if the interfaces exist
@@ -219,32 +220,62 @@ echo "Gateway successfully configured on $WAN_INTERFACE and $LAN_INTERFACE."
 
 # Configure DHCP Server
 configure_dhcp_server() {
-# version 1.1
-# Author: Jaime Galvez (TheHellishPandaa)
-#&COPY;2024 
-#GNU/GPL Licence
-#Date: November-2024
-#:Description: A tool for creating and managing a DHCP server with MAC filtering in an Ubuntu 20.04 system or later
-#:Usage: First option installs the DHCP-SERVER. The second option configures and sets up parameters, including MAC filtering.
-#:Dependencies:
-#:      - "ISC-DHCP-SERVER"
+# A tool for creating and managing a DHCP server with MAC filtering in an Ubuntu 20.04 system or later
 
 
+    echo "================================="
+    echo "Configuring DHCP Server..."
+    echo "================================="
+    echo "1) Assign an IP to a MAC"
+    echo "2) Block an IP"
+    echo "3) Change Network Configuration"
+    echo "4) Install DHCP Server"
+    echo "5) Exit"
+    read -p "Choose an option: " dhcp_option
+    case $dhcp_option in
+        1)
+            read -p "Enter the MAC address of the device: " mac
+            read -p "Enter the IP to assign: " ip
+            echo "host device_$mac {
+    hardware ethernet $mac;
+    fixed-address $ip;
+}" >> /etc/dhcp/dhcpd.conf
+            echo "Assigned IP $ip to MAC $mac."
+            ;;
+        2)
+            read -p "Enter the IP to block: " ip_blocked
+            echo "deny booting from $ip_blocked;" >> /etc/dhcp/dhcpd.conf
+            echo "Blocked IP $ip_blocked in the DHCP server."
+            ;;
+        3)
+            echo "Updating network configuration for the DHCP server..."
+            read -p "Enter the network (e.g., 192.168.1.0): " network
+            read -p "Enter the netmask (e.g., 255.255.255.0): " netmask
+            read -p "Enter the range of IPs to assign (e.g., 192.168.1.100 192.168.1.200): " range
+            read -p "Enter the gateway: " gateway
+            echo "
+subnet $network netmask $netmask {
+    range $range;
+    option routers $gateway;
+}" >> /etc/dhcp/dhcpd.conf
+            echo "Updated network settings for the DHCP server."
+            ;;
+        4)
+            echo "======================="
+            echo "Installing DHCP Server"
+            echo "======================="
+            
+            #show interfaces
+            echo ""
+            echo "++++++++++++++++++++++++++++++++"
+            echo "Available interfaces"
+            echo "++++++++++++++++++++++++++++++++"
+            INTERFACES=$(ip link show | awk -F': ' '{print $1,  $2}')
+            echo "$INTERFACES"
+            echo "++++++++++++++++++++++++++++++++"
+            echo ""
 
-clear
-
-# Check if running as root
-if [ "$EUID" -ne 0 ]; then
-  echo "Please run this script as root."
-  exit 1
-fi
-
-echo -e "System Interfaces: "
-ip -o link show | awk -F': ' '{print $2}' | grep -v "lo"
-
-# Function to install the DHCP server
-install_dhcp_server() {
-  # Ask the user to input the network interface name
+	  # Ask the user to input the network interface name
   read -p "Enter the network interface for the DHCP server (e.g., ens19): " interface_name
   
   apt update && apt install -y isc-dhcp-server
@@ -264,7 +295,6 @@ install_dhcp_server() {
   systemctl enable isc-dhcp-server
 
   echo "DHCP server configured on interface $interface_name with network 10.33.206.0/24."
-}
 
 # Function to configure the dhcpd.conf file
 configure_dhcp() {
@@ -291,86 +321,17 @@ subnet $subnet netmask $subnet_mask {
 }
 EOL
 }
-
-# Function to assign a static IP to a device by its MAC address
-assign_static_ip() {
-  read -p "Enter the MAC address of the device (e.g., 00:1A:2B:3C:4D:5E): " mac_address
-  read -p "Enter the specific IP for this device (e.g., 10.33.206.101): " static_ip
-
-  # Add the static IP assignment to dhcpd.conf
-  echo "
-# Static IP assignment for device with MAC $mac_address
-host fixed_device {
-    hardware ethernet $mac_address;
-    fixed-address $static_ip;
-}" >> /etc/dhcp/dhcpd.conf
-
-  # Apply changes without unnecessary restart
-  echo "Static IP $static_ip assigned to device with MAC $mac_address."
-}
-
-# Function to block a specific IP
-block_ip() {
-  read -p "Enter the IP to block (e.g., 10.33.206.105): " blocked_ip
-
-  # Add the IP block without duplicating subnet configuration
-  echo "
-# Block IP $blocked_ip
-host blocked_device {
-    hardware ethernet $blocked_ip;
-    deny booting;
-}" >> /etc/dhcp/dhcpd.conf
-
-  echo "IP $blocked_ip has been blocked."
-}
-
-# Function to edit IP ranges, DNS, and subnet mask
-edit_dhcp_config() {
-  echo "Editing DHCP configuration..."
-  configure_dhcp
-  echo "DHCP configuration updated."
-}
-
-# Main menu
-while true; do
-  clear
-  echo "Select an option:"
-  echo "1) Install DHCP server"
-  echo "2) Assign specific IP to a device (by MAC address)"
-  echo "3) Block a specific IP"
-  echo "4) Edit IP ranges, DNS, and subnet mask"
-  echo "5) Exit"
-  read -p "Option: " option
-
-  case $option in
-    1)
-      install_dhcp_server
-      ;;
-    2)
-      assign_static_ip
-      ;;
-    3)
-      block_ip
-      ;;
-    4)
-      edit_dhcp_config
-      ;;
-    5)
-      echo "Exiting..."
-      exit 0
-      ;;
-    *)
-      echo "Invalid option, please try again."
-      ;;
-  esac
-
-  echo "Applying changes..."
-  systemctl restart isc-dhcp-server
-  read -p "Press Enter to continue..."
-done
-
-
-
+            ;;
+        5)
+            echo "Exiting DHCP configuration."
+            return ;;
+        *)
+            echo "Invalid option. Please try again."
+            ;;
+    esac
+    # Restart the service after any change
+    systemctl restart isc-dhcp-server
+    echo "DHCP server configured and restarted."
 }
 
 # Change FQDN Name
@@ -550,20 +511,15 @@ fi
 
 # Interactive Nextcloud Installation Script
 
+read -p "Enter the database user name (default: root): " DB_USER
+DB_USER=${DB_USER:-"root"}
 
-# Check if the user is root
-if [[ $EUID -ne 0 ]]; then
-    echo "This script must be run as root." 
-    exit 1
-fi
 
 # Prompt for database name
 read -p "Enter the database name (default: nextcloud_db): " DB_NAME
 DB_NAME=${DB_NAME:-"nextcloud_db"}
 
-echo "++++++++++++++++++++++++++++++++++++"
-echo "+++++++ Database User: Root ++++++++"
-echo "++++++++++++++++++++++++++++++++++++"
+
 
 # Prompt for database password
 read -sp "Enter the password for the database user: " DB_PASSWORD
@@ -584,7 +540,6 @@ echo -e "\n========================================================"
 echo -e "============ Configuration Summary: ===================="
 echo -e "========================================================\n"
 echo "Database: $DB_NAME"
-echo "Database user: Root"
 echo "Database User: $DB_USER"
 echo "Installation Path: $NEXTCLOUD_PATH"
 echo "Domain or IP: $DOMAIN"
@@ -634,12 +589,10 @@ chmod -R 770 $NEXTCLOUD_PATH
 
 systemctl restart apache2
 
-# Optional: Set up HTTPS with Certbot
-read -n 1 -p "Do you want to set up HTTPS with Certbot? (y/n): " ENABLE_HTTPS
-if [[ "$ENABLE_HTTPS" == [yY] ]]; then
-    apt install -y certbot python3-certbot-apache
-    certbot --apache -d $DOMAIN
-fi
+#Configure Data Directory
+mkdir $data_directory
+chown -R www-data:www-data $data_directory
+chmod -R 755 $data_directory
 
 # Finish
 echo "Nextcloud installation complete."
@@ -674,6 +627,7 @@ echo
 read -p "Enter the moodle installation path (default: /var/www/html/moodle): " MOODLE_PATH
 MOODLE_PATH=${MOODLE_PATH:-"/var/www/html/moodle"}
 
+
 # Prompt for domain or IP
 read -p "Enter the domain or IP to access Moodle: " DOMAIN
 
@@ -686,10 +640,10 @@ echo -e "========================================================"
 echo -e ""
 
 echo "Database: $DB_NAME"
-echo "Database User: $DB_USER"
+echo "Database User: Root"
 echo "Installation Path: $MOODLE_PATH"
 echo "Domain or IP: $DOMAIN"
-echo "Data Directory: " $dta_directory
+echo "Data Directory: " $data_directory
 echo -e "Do you want to proceed with the installation? (y/n): "
 
 # Confirmation to proceed with the installation
@@ -766,31 +720,21 @@ echo "Moodle installation complete."
 echo "Please access http://$DOMAIN/moodle to complete setup in the browser."
 echo "---------------------------------------------------------------------"
 }
-
-network_scan(){
-# Function to list active network interfaces
-list_interfaces() {
-    interfaces=$(ip -o -4 addr show up | awk '{print $2}' | sort -u)
-    
-    if [ -z "$interfaces" ]; then
-        echo "No active network interfaces found."
-        exit 1
-    fi
-
-    echo "Available network interfaces:"
-    select interface in $interfaces; do
-        if [ -n "$interface" ]; then
-            echo "You selected interface: $interface"
-            break
-        else
-            echo "Invalid selection. Please try again."
-        fi
-    done
-}
+network_scan() {
 
 # Function to scan the local network and display connected devices
 scan_network() {
-    list_interfaces
+
+      #show interfaces
+            echo ""
+            echo "++++++++++++++++++++++++++++++++"
+            echo "Available interfaces"
+            echo "++++++++++++++++++++++++++++++++"
+            INTERFACES=$(ip link show | awk -F': ' '{print $1,  $2}')
+            echo "$INTERFACES"
+            echo "++++++++++++++++++++++++++++++++"
+            echo ""
+            read -p "What interface wwould use to scan: " interface
 
     echo "Scanning devices on the local network using interface $interface..."
     echo ""
@@ -819,12 +763,11 @@ while true; do
         *) echo "Invalid option. Please try again." ;;
     esac
 done
-
 }
+
+
 # Main Menu
 while true; do
-
-clear
 
     echo "==================================================================="
     echo "========================= ZenNet Forge ============================"
@@ -837,7 +780,7 @@ clear
     echo "2) Configure gateway server"
     echo "3) Configure DHCP server"
     echo "4) Change FQDN Name"
-    echo "5) Configure SAMBA server"
+    echo "-5) Configure SAMBA server"
     echo "6) Configure SFTP server"
     echo "7) Configure Firewall"
     echo "8) Install Nextcloud latest version"
