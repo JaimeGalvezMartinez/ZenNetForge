@@ -165,19 +165,6 @@ read -p "Enter the WAN Interface: " WAN_INTERFACE
 read -p "Enter the LAN Interface: " LAN_INTERFACE
 
 # Network Interface Variables
-WAN_INTERFACE=$WAN_INTERFACE  #WAN_INTERFACE
-LAN_INTERFACE=$LAN_INTERFACE  #LAN interface
-
-# Check if the interfaces exist
-if ! ip a show $WAN_INTERFACE &>/dev/null; then
-  echo "Error: WAN interface ($WAN_INTERFACE) does not exist."
-  exit 1
-fi
-
-if ! ip a show $LAN_INTERFACE &>/dev/null; then
-  echo "Error: LAN interface ($LAN_INTERFACE) does not exist."
-  exit 1
-fi
 
 # Update system
 echo "Updating the system..."
