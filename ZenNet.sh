@@ -530,7 +530,7 @@ echo "Database: $DB_NAME"
 echo "Database User: $DB_USER"
 echo "Installation Path: $NEXTCLOUD_PATH"
 echo "Domain or IP: $DOMAIN"
-read -n 1 -p "Do you want to proceed with the installation? (y/n): " CONFIRM
+read -p "Do you want to proceed with the installation? (y/n): " CONFIRM
 echo
 if [[ "$CONFIRM" != [yY] ]]; then
     echo "Installation canceled."
@@ -767,7 +767,7 @@ while true; do
     echo "2) Configure gateway server"
     echo "3) Configure DHCP server"
     echo "4) Change FQDN Name"
-    echo "-5) Configure SAMBA server"
+    echo "5) Configure SAMBA server"
     echo "6) Configure SFTP server"
     echo "7) Configure Firewall"
     echo "8) Install Nextcloud latest version"
