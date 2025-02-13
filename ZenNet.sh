@@ -878,7 +878,7 @@ while true; do
         7) configure_firewall ;;
         8) nextcloud_install ;;
         9) moodle_install ;;
-	10) wp_install;
+	10) wp_install ;;
         11) network_scan ;;
         12) echo "Exiting. Goodbye!"; break ;;
         *) echo "Invalid option." ;;
