@@ -1,5 +1,5 @@
 
-
+ 
 #!/bin/bash
 # Version 1.2 - December 2024
 # Developer: Jaime Galvez (TheHellishPandaa)
@@ -745,13 +745,13 @@ sudo apt update && sudo apt upgrade -y
 echo "🌍 Installing Apache..."
 sudo apt install -y apache2
 
-# Install MySQL
-echo "💾 Installing MySQL..."
-sudo apt install -y mysql-server
-sudo systemctl enable --now mysql
+echo "💾 Installing MariaDB..."
+sudo apt update
+sudo apt install -y mariadb-server
+sudo systemctl enable --now mariadb
 
-# Configure MySQL (create DB and user)
-echo "🛠 Configuring MySQL..."
+# Configure MARIADB (create DB and user)
+echo "🛠 Configuring Mariadb..."
 sudo mysql -e "CREATE DATABASE $DB_NAME;"
 sudo mysql -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
 sudo mysql -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';"
@@ -864,7 +864,7 @@ while true; do
     echo "7) Configure Firewall"
     echo "8) Install Nextcloud latest version"
     echo "9) Install Moodle Latest Version"
-    echo "10) Install Wordpress
+    echo "10) Install Wordpress"
     echo "11) Network Scan"
     echo "12) Exit"
     read -p "Choose an option: " opcion
