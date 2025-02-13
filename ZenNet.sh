@@ -1,7 +1,7 @@
 
  
 #!/bin/bash
-# Version 1.2 - December 2024
+# Version 1.4 - Febrary 2024
 # Developer: Jaime Galvez (TheHellishPandaa)
 # Description: Bash script for configuring gateway server, DHCP, SAMBA, OpenSSH, etc.
 # This Script is released under GNU General public license.
