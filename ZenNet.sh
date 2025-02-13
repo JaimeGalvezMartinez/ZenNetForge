@@ -798,6 +798,7 @@ rm -f $WP_ARCHIVE
 echo "✅ Installation complete. Access http://your-server/wordpress to finish WordPress setup."
 
 }
+
 network_scan() {
 
 # Function to scan the local network and display connected devices
