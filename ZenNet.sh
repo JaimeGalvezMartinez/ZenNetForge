@@ -826,7 +826,6 @@ sudo tee $CONFIG_FILE > /dev/null <<EOF
     ErrorLog \${APACHE_LOG_DIR}/$DOMAIN-error.log
     CustomLog \${APACHE_LOG_DIR}/$DOMAIN-access.log combined
 </VirtualHost>
-...
 EOF
 
 # Enable SSL if chosen
