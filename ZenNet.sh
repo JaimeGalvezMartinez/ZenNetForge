@@ -843,7 +843,6 @@ if [ "$ENABLE_SSL" == "y" ]; then
     ErrorLog \${APACHE_LOG_DIR}/$DOMAIN-ssl-error.log
     CustomLog \${APACHE_LOG_DIR}/$DOMAIN-ssl-access.log combined
 </VirtualHost>
-...
 EOF
     sudo a2enmod ssl
     sudo a2ensite $DOMAIN-ssl.conf
