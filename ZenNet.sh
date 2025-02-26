@@ -926,7 +926,7 @@ while true; do
     echo "8) Install Nextcloud latest version"
     echo "9) Install Moodle Latest Version"
     echo "10) Install Wordpress"
-    echo "11) VirtualHost Setup
+    echo "11) VirtualHost Setup "
     echo "12) Network Scan"
     echo "13) Exit"
     read -p "Choose an option: " opcion
