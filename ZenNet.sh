@@ -800,7 +800,6 @@ echo "✅ Installation complete. Access http://your-server/wordpress to finish W
 }
 setup_virtualhost () {
 
-#!/bin/bash
 
 # Ask user for domain name
 read -p "Enter your domain name: " DOMAIN
