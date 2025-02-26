@@ -798,6 +798,68 @@ rm -f $WP_ARCHIVE
 echo "✅ Installation complete. Access http://your-server/wordpress to finish WordPress setup."
 
 }
+setup_virtualhost () {
+
+#!/bin/bash
+
+# Ask user for domain name
+read -p "Enter your domain name: " DOMAIN
+
+# Ask user for document root
+read -p "Enter your document root (default: /var/www/html/$DOMAIN): " DOC_ROOT
+DOC_ROOT=${DOC_ROOT:-/var/www/html/$DOMAIN}
+
+# Ask user if they want SSL
+read -p "Do you want to enable SSL? (y/n): " ENABLE_SSL
+CONFIG_FILE=/etc/apache2/sites-available/$DOMAIN.conf
+SSL_CONFIG_FILE=/etc/apache2/sites-available/$DOMAIN-ssl.conf
+
+# Create document root
+sudo mkdir -p $DOC_ROOT
+sudo chown -R $USER:$USER $DOC_ROOT
+sudo chmod -R 755 /var/www/html
+
+# Create virtual host configuration
+sudo tee $CONFIG_FILE > /dev/null <<EOF
+<VirtualHost *:80>
+    ServerAdmin webmaster@$DOMAIN
+    ServerName $DOMAIN
+    ServerAlias www.$DOMAIN
+    DocumentRoot $DOC_ROOT
+    ErrorLog \${APACHE_LOG_DIR}/$DOMAIN-error.log
+    CustomLog \${APACHE_LOG_DIR}/$DOMAIN-access.log combined
+</VirtualHost>
+EOF
+
+# Enable SSL if chosen
+if [ "$ENABLE_SSL" == "y" ]; then
+    sudo tee $SSL_CONFIG_FILE > /dev/null <<EOF
+<VirtualHost *:443>
+    ServerAdmin webmaster@$DOMAIN
+    ServerName $DOMAIN
+    ServerAlias www.$DOMAIN
+    DocumentRoot $DOC_ROOT
+    SSLEngine on
+    SSLCertificateFile /etc/ssl/certs/$DOMAIN.crt
+    SSLCertificateKeyFile /etc/ssl/private/$DOMAIN.key
+    ErrorLog \${APACHE_LOG_DIR}/$DOMAIN-ssl-error.log
+    CustomLog \${APACHE_LOG_DIR}/$DOMAIN-ssl-access.log combined
+</VirtualHost>
+EOF
+    sudo a2enmod ssl
+    sudo a2ensite $DOMAIN-ssl.conf
+fi
+
+# Enable the site and reload Apache
+sudo a2ensite $DOMAIN.conf
+sudo systemctl reload apache2
+
+# Output success message
+echo "Virtual host for $DOMAIN has been created successfully!"
+if [ "$ENABLE_SSL" == "y" ]; then
+    echo "SSL has been enabled for $DOMAIN. Make sure to place your certificate files in /etc/ssl/certs/ and /etc/ssl/private/."
+fi
+
 
 network_scan() {
 
@@ -865,8 +927,9 @@ while true; do
     echo "8) Install Nextcloud latest version"
     echo "9) Install Moodle Latest Version"
     echo "10) Install Wordpress"
-    echo "11) Network Scan"
-    echo "12) Exit"
+    echo "11) VirtualHost Setup
+    echo "12) Network Scan"
+    echo "13) Exit"
     read -p "Choose an option: " opcion
 
     case $opcion in
@@ -880,8 +943,9 @@ while true; do
         8) nextcloud_install ;;
         9) moodle_install ;;
 	10) wp_install ;;
-        11) network_scan ;;
-        12) echo "Exiting. Goodbye!"; break ;;
+ 	11) setup_virtualhost ;;
+        12) network_scan ;;
+        13) echo "Exiting. Goodbye!"; break ;;
         *) echo "Invalid option." ;;
     esac
 done
