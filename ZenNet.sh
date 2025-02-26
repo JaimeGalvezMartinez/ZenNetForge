@@ -813,8 +813,6 @@ read -p "Do you want to enable SSL? (y/n): " ENABLE_SSL
 CONFIG_FILE=/etc/apache2/sites-available/$DOMAIN.conf
 SSL_CONFIG_FILE=/etc/apache2/sites-available/$DOMAIN-ssl.conf
 
-# Create document root
-sudo mkdir -p $DOC_ROOT
 sudo chown -R $USER:$USER $DOC_ROOT
 sudo chmod -R 755 /var/www/html
 
