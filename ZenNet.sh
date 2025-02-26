@@ -860,7 +860,7 @@ echo "Virtual host for $DOMAIN has been created successfully!"
 if [ "$ENABLE_SSL" == "y" ]; then
     echo "SSL has been enabled for $DOMAIN. Make sure to place your certificate files in /etc/ssl/certs/ and /etc/ssl/private/."
 fi
-
+}
 
 network_scan() {
 
