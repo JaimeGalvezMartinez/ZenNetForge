@@ -92,49 +92,104 @@ configure_firewall() {
 configure_network() {
 
 
-    echo "--------------------------------------"
-    echo "Network interfaces in your system:"
-    echo "--------------------------------------"
-    INTERFACES=$(ip link show | awk -F': ' '{print $1,  $2}')
-    echo "$INTERFACES"
-    echo "======================================"
-    read -p "Input the name of the interface to configure: " SELECTED_INTERFACE
-    if ! echo "$INTERFACES" | grep -qw "$SELECTED_INTERFACE"; then
-        echo "Invalid Interface. Exit......."
+    # Display available network interfaces (excluding lo)
+    echo "Available network interfaces:"
+    echo "--------------------------------"
+    ip -o link show | awk -F': ' '!/ lo:/{print $2}' | while read -r interface; do
+        mac=$(cat /sys/class/net/$interface/address)
+        echo "Interface: $interface - MAC: $mac"
+    done
+
+    echo "--------------------------------"
+
+    # Ask the user to select an interface
+    read -p "Enter the network interface you want to configure: " interface
+
+    # Ask if they want a static IP or DHCP
+    echo "Do you want to configure a Static IP or use DHCP?"
+    echo "1) Static IP"
+    echo "2) DHCP (Automatic)"
+    read -p "Select an option (1 or 2): " option
+
+    # Initialize variables
+    dns_servers=""
+
+    if [[ "$option" == "1" ]]; then
+        # Static IP Configuration
+        read -p "Enter the IP address (e.g., 192.168.1.100): " ip_address
+        read -p "Enter the CIDR prefix (e.g., 24 for 255.255.255.0): " cidr
+        read -p "Enter the gateway (e.g., 192.168.1.1): " gateway
+
+        # Ask if the user wants to configure custom DNS servers
+        read -p "Do you want to configure custom DNS servers? (y/n): " configure_dns
+        if [[ "$configure_dns" =~ ^[Yy]$ ]]; then
+            read -p "Enter DNS servers (comma-separated, e.g., 8.8.8.8,8.8.4.4): " dns_servers
+        fi
+
+        # Validate CIDR prefix
+        if ! [[ "$cidr" =~ ^[0-9]+$ ]] || [ "$cidr" -lt 1 ] || [ "$cidr" -gt 32 ]; then
+            echo "Error: CIDR prefix must be a number between 1 and 32."
+            exit 1
+        fi
+
+        # Create Netplan configuration for Static IP
+        sudo tee /etc/netplan/01-netcfg.yaml > /dev/null <<EOF
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    $interface:
+      dhcp4: no
+      addresses:
+        - $ip_address/$cidr
+      gateway4: $gateway
+EOF
+
+        # Add DNS configuration if the user provided DNS servers
+        if [[ -n "$dns_servers" ]]; then
+            sudo tee -a /etc/netplan/01-netcfg.yaml > /dev/null <<EOF
+      nameservers:
+        addresses: [$dns_servers]
+EOF
+        fi
+
+    elif [[ "$option" == "2" ]]; then
+        # Ask if the user wants to configure custom DNS servers
+        read -p "Do you want to configure custom DNS servers? (y/n): " configure_dns
+        if [[ "$configure_dns" =~ ^[Yy]$ ]]; then
+            read -p "Enter DNS servers (comma-separated, e.g., 8.8.8.8,8.8.4.4): " dns_servers
+        fi
+
+        # Create Netplan configuration for DHCP
+        sudo tee /etc/netplan/01-netcfg.yaml > /dev/null <<EOF
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    $interface:
+      dhcp4: yes
+EOF
+
+        # Add DNS configuration if the user provided DNS servers
+        if [[ -n "$dns_servers" ]]; then
+            sudo tee -a /etc/netplan/01-netcfg.yaml > /dev/null <<EOF
+      nameservers:
+        addresses: [$dns_servers]
+EOF
+        fi
+
+    else
+        echo "Invalid option. You must choose 1 or 2."
         exit 1
     fi
-    echo "Selected Interface: $SELECTED_INTERFACE"
-    echo "1) Configure static IP"
-    echo "2) Configure via DHCP"
-    echo "3) Configure DNS"
-    echo "4) Exit"
-    read -p "Choose an option: " OPTION
-    case $OPTION in
-        1)  # IP estática
-            read -p "Enter IP Address: (example: 192.168.1.100)" IP
-            read -p "Enter the Netmask (CIDR format)(example 24 for 255.255.255.0): " MASCARA
-            read -p "Enter the IP of Gateway/Router (example 192.168.1.1): " GATEWAY
-            sudo ip addr flush dev $SELECTED_INTERFACE
-            sudo ip addr add $IP/$MASCARA dev $SELECTED_INTERFACE
-            sudo ip route add default via $GATEWAY
-            echo "Static IP configured on $SELECTED_INTERFACE."
-            ;;
-        2)  # DHCP
-            sudo dhclient -r $SELECTED_INTERFACE
-            sudo dhclient $SELECTED_INTERFACE
-            echo "Interface $SELECTED_INTERFACE configured via DHCP."
-            ;;
-        3)  # DNS
-            read -p "Primary DNS: " DNS1
-            read -p "Secondary DNS (optional): " DNS2
-            sudo cp /etc/resolv.conf /etc/resolv.conf.bak
-            echo "nameserver $DNS1" | sudo tee /etc/resolv.conf > /dev/null
-            [[ -n "$DNS2" ]] && echo "nameserver $DNS2" | sudo tee -a /etc/resolv.conf > /dev/null
-            echo "DNS updated."
-            ;;
-        4)  echo "Exiting." ;;
-        *)  echo "Invalid Option." ;;
-    esac
+
+    # Adjust Netplan file permissions to avoid warnings
+    sudo chmod 600 /etc/netplan/01-netcfg.yaml
+
+    # Apply Netplan configuration
+    sudo netplan apply
+
+    echo "Network configuration successfully applied. 🚀"
 }
 
 # Configure gateway server
