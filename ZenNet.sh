@@ -89,9 +89,81 @@ configure_firewall() {
     done
 }
 
-configure_network() {
 
-#!/bin/bash
+# Function to install and configure TOR + Squid
+install_tor_squid() {
+    # Check if the script is run as root
+    if [[ $EUID -ne 0 ]]; then
+        echo "This script must be run as root or with sudo."
+        exit 1
+    fi
+
+    echo "🚀 Installing TOR and Squid Proxy on Ubuntu Server..."
+
+    # Prompt the user for the local network
+    read -p "🔹 Enter your local network (e.g., 192.168.1.0/24): " LOCAL_NETWORK
+
+    # Validate local network format
+    if [[ ! $LOCAL_NETWORK =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$ ]]; then
+        echo "❌ Error: Invalid network format. Use the correct format (e.g., 192.168.1.0/24)."
+        exit 1
+    fi
+
+    echo "🔹 Using local network: $LOCAL_NETWORK"
+
+    # Update system packages
+    apt update && apt upgrade -y
+
+    # Install TOR and Squid
+    apt install tor squid -y
+
+    # Configure TOR
+    echo "📌 Configuring TOR..."
+    cat > /etc/tor/torrc <<EOF
+SocksPort 127.0.0.1:9050
+ExitRelay 0
+Log notice file /var/log/tor/notices.log
+EOF
+
+    # Restart and enable TOR service
+    systemctl restart tor
+    systemctl enable tor
+
+    # Configure Squid
+    echo "📌 Configuring Squid..."
+    cat > /etc/squid/squid.conf <<EOF
+# Define local network provided by user
+acl localnet src $LOCAL_NETWORK
+
+# Allow access only to the local network
+http_access allow localnet
+http_access deny all
+
+# Set Squid listening port
+http_port 3128
+
+# Redirect traffic through TOR
+cache_peer 127.0.0.1 parent 9050 0 no-query default
+never_direct allow all
+
+# Hide client information
+forwarded_for off
+via off
+request_header_access From deny all
+request_header_access Referer deny all
+request_header_access X-Forwarded-For deny all
+request_header_access Via deny all
+request_header_access Cache-Control deny all
+EOF
+
+    # Restart and enable Squid service
+    systemctl restart squid
+    systemctl enable squid
+
+    echo "✅ Installation completed."
+    echo "🔹 Configure your browser to use the proxy: SERVER_IP:3128"
+    echo "🔹 Verify your IP at: https://check.torproject.org"
+}
 
 configure_network() {
     # Display available network interfaces (excluding lo)
@@ -986,32 +1058,34 @@ while true; do
     echo "1) Configure network interfaces"
     echo "2) Configure gateway server"
     echo "3) Configure DHCP server"
-    echo "4) Change FQDN Name"
-    echo "5) Configure SAMBA server"
-    echo "6) Configure SFTP server"
-    echo "7) Configure Firewall"
-    echo "8) Install Nextcloud latest version"
-    echo "9) Install Moodle Latest Version"
-    echo "10) Install Wordpress"
-    echo "11) VirtualHost Setup"
-    echo "12) Network Scan"
-    echo "13) Exit"
+    echo "4) Install Tor + Squid Proxy "
+    echo "5) Change FQDN Name"
+    echo "6) Configure SAMBA server"
+    echo "7) Configure SFTP server"
+    echo "8) Configure Firewall"
+    echo "9) Install Nextcloud latest version"
+    echo "10) Install Moodle Latest Version"
+    echo "11) Install Wordpress"
+    echo "12) VirtualHost Setup"
+    echo "13) Network Scan"
+    echo "14) Exit"
     read -p "Choose an option: " opcion
 
     case $opcion in
         1) configure_network ;;
         2) configure_gateway_server ;;
         3) configure_dhcp_server ;;
-        4) configure_fqdn_name ;;
-        5) install_samba_server ;;
-        6) install_sftp_server ;;
-        7) configure_firewall ;;
-        8) nextcloud_install ;;
-        9) moodle_install ;;
-	10) wp_install ;;
- 	11) setup_virtualhost ;;
-        12) network_scan ;;
-        13) echo "Exiting. Goodbye!"; break ;;
+	4) install_tor_squid ;;
+        5) configure_fqdn_name ;;
+        6) install_samba_server ;;
+        7) install_sftp_server ;;
+        8) configure_firewall ;;
+        9) nextcloud_install ;;
+        10) moodle_install ;;
+	11) wp_install ;;
+ 	12) setup_virtualhost ;;
+        13) network_scan ;;
+        14) echo "Exiting. Goodbye!"; break ;;
         *) echo "Invalid option." ;;
     esac
 done
