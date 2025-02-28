@@ -91,7 +91,9 @@ configure_firewall() {
 
 configure_network() {
 
+#!/bin/bash
 
+configure_network() {
     # Display available network interfaces (excluding lo)
     echo "Available network interfaces:"
     echo "--------------------------------"
@@ -113,12 +115,13 @@ configure_network() {
 
     # Initialize variables
     dns_servers=""
+    gateway=""
 
     if [[ "$option" == "1" ]]; then
         # Static IP Configuration
         read -p "Enter the IP address (e.g., 192.168.1.100): " ip_address
         read -p "Enter the CIDR prefix (e.g., 24 for 255.255.255.0): " cidr
-        read -p "Enter the gateway (e.g., 192.168.1.1): " gateway
+        read -p "Enter the gateway (or press Enter to skip): " gateway
 
         # Ask if the user wants to configure custom DNS servers
         read -p "Do you want to configure custom DNS servers? (y/n): " configure_dns
@@ -142,8 +145,14 @@ network:
       dhcp4: no
       addresses:
         - $ip_address/$cidr
+EOF
+
+        # Add gateway if provided
+        if [[ -n "$gateway" ]]; then
+            sudo tee -a /etc/netplan/01-netcfg.yaml > /dev/null <<EOF
       gateway4: $gateway
 EOF
+        fi
 
         # Add DNS configuration if the user provided DNS servers
         if [[ -n "$dns_servers" ]]; then
@@ -190,6 +199,11 @@ EOF
     sudo netplan apply
 
     echo "Network configuration successfully applied. 🚀"
+}
+
+# Call the function
+configure_network
+
 }
 
 # Configure gateway server
