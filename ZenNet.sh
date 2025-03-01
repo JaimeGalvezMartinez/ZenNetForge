@@ -282,11 +282,6 @@ EOF
     echo "Network configuration successfully applied. 🚀"
 }
 
-# Call the function
-configure_network
-
-}
-
 # Configure gateway server
 
 configure_gateway_server(){
