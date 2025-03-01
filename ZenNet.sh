@@ -89,9 +89,7 @@ configure_firewall() {
     done
 }
 
-
-# Function to install and configure TOR + Squid
-install_forwader_dns() {
+install_forwaRder_dns() {
     
 #!/bin/bash
 
