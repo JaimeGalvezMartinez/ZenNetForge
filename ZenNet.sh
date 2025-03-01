@@ -89,7 +89,7 @@ configure_firewall() {
     done
 }
 
-install_forwaRder_dns() {
+install_forwarder_dns() {
     
 #!/bin/bash
 
@@ -1056,7 +1056,7 @@ while true; do
         1) configure_network ;;
         2) configure_gateway_server ;;
         3) configure_dhcp_server ;;
-	4) install_dns_forwarder ;;
+	4) install_forwarder_dns ;;
         5) configure_fqdn_name ;;
         6) install_samba_server ;;
         7) install_sftp_server ;;
