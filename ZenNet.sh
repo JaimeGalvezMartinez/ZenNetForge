@@ -134,6 +134,12 @@ EOF
     cat > /etc/squid/squid.conf <<EOF
 # Define local network provided by user
 acl localnet src $LOCAL_NETWORK
+acl SSL_ports port 443
+acl Safe_ports port 80
+acl Safe_ports port 21
+acl Safe_ports port 443
+acl Safe_ports port 9050
+acl CONNECT method CONNECT
 
 # Allow access only to the local network
 http_access allow localnet
@@ -145,6 +151,9 @@ http_port 3128
 # Redirect traffic through TOR
 cache_peer 127.0.0.1 parent 9050 0 no-query default
 never_direct allow all
+
+# Allow CONNECT to TOR port
+http_access allow CONNECT SSL_ports
 
 # Hide client information
 forwarded_for off
