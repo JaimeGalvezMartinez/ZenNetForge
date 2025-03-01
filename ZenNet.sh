@@ -91,87 +91,66 @@ configure_firewall() {
 
 
 # Function to install and configure TOR + Squid
-install_tor_squid() {
-    # Check if the script is run as root
-    if [[ $EUID -ne 0 ]]; then
-        echo "This script must be run as root or with sudo."
-        exit 1
-    fi
+install_forwader_dns() {
+    
+#!/bin/bash
 
-    echo "🚀 Installing TOR and Squid Proxy on Ubuntu Server..."
+# Ask the user which type of DNS server they want to install
+echo "Select the type of DNS server to install:"
+echo "1) Forwarding DNS Server"
+echo "2) Caching DNS Server"
+read -p "Enter the number of the desired option: " option
 
-    # Prompt the user for the local network
-    read -p "🔹 Enter your local network (e.g., 192.168.1.0/24): " LOCAL_NETWORK
+# Update packages and install Bind9
+sudo apt update && sudo apt install -y bind9
 
-    # Validate local network format
-    if [[ ! $LOCAL_NETWORK =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$ ]]; then
-        echo "❌ Error: Invalid network format. Use the correct format (e.g., 192.168.1.0/24)."
-        exit 1
-    fi
+if [ "$option" == "1" ]; then
+    # Configure Bind9 as a forwarding DNS server
+    sudo bash -c 'cat > /etc/bind/named.conf.options <<EOF
+options {
+    directory "/var/cache/bind";
+    
+    recursion yes;
+    allow-recursion { any; };
+    
+    forwarders {
+        8.8.8.8;  // Google DNS
+        8.8.4.4;  // Google DNS
+        1.1.1.1;  // Cloudflare DNS
+        1.0.0.1;  // Cloudflare DNS
+    };
+    
+    dnssec-validation auto;
+    listen-on { any; };
+    listen-on-v6 { any; };
+};
+EOF'
+elif [ "$option" == "2" ]; then
+    # Configure Bind9 as a caching DNS server
+    sudo bash -c 'cat > /etc/bind/named.conf.options <<EOF
+options {
+    directory "/var/cache/bind";
+    
+    recursion yes;
+    allow-query { any; };
+    
+    dnssec-validation auto;
+    listen-on { any; };
+    listen-on-v6 { any; };
+};
+EOF'
+else
+    echo "Invalid option. Exiting..."
+    exit 1
+fi
 
-    echo "🔹 Using local network: $LOCAL_NETWORK"
+# Restart Bind9 to apply changes
+sudo systemctl restart bind9
+sudo systemctl enable bind9
 
-    # Update system packages
-    apt update && apt upgrade -y
+# Check the service status
+sudo systemctl status bind9 --no-pager
 
-    # Install TOR and Squid
-    apt install tor squid -y
-
-    # Configure TOR
-    echo "📌 Configuring TOR..."
-    cat > /etc/tor/torrc <<EOF
-SocksPort 127.0.0.1:9050
-ExitRelay 0
-Log notice file /var/log/tor/notices.log
-EOF
-
-    # Restart and enable TOR service
-    systemctl restart tor
-    systemctl enable tor
-
-    # Configure Squid
-    echo "📌 Configuring Squid..."
-    cat > /etc/squid/squid.conf <<EOF
-# Define local network provided by user
-acl localnet src $LOCAL_NETWORK
-acl SSL_ports port 443
-acl Safe_ports port 80
-acl Safe_ports port 21
-acl Safe_ports port 443
-acl Safe_ports port 9050
-acl CONNECT method CONNECT
-
-# Allow access only to the local network
-http_access allow localnet
-http_access deny all
-
-# Set Squid listening port
-http_port 3128
-
-# Redirect traffic through TOR
-cache_peer 127.0.0.1 parent 9050 0 no-query default
-never_direct allow all
-
-# Allow CONNECT to TOR port
-http_access allow CONNECT SSL_ports
-
-# Hide client information
-forwarded_for off
-via off
-request_header_access From deny all
-request_header_access Referer deny all
-request_header_access X-Forwarded-For deny all
-request_header_access Via deny all
-request_header_access Cache-Control deny all
-EOF
-
-    # Restart and enable Squid service
-    systemctl restart squid
-    systemctl enable squid
-
-    echo "✅ Installation completed."
-    echo "🔹 Configure your browser to use the proxy: SERVER_IP:3128"
-    echo "🔹 Verify your IP at: https://check.torproject.org"
 }
 
 configure_network() {
@@ -1062,7 +1041,7 @@ while true; do
     echo "1) Configure network interfaces"
     echo "2) Configure gateway server"
     echo "3) Configure DHCP server"
-    echo "4) Install Tor + Squid Proxy "
+    echo "4) Install forwarder + cache DNS "
     echo "5) Change FQDN Name"
     echo "6) Configure SAMBA server"
     echo "7) Configure SFTP server"
@@ -1079,7 +1058,7 @@ while true; do
         1) configure_network ;;
         2) configure_gateway_server ;;
         3) configure_dhcp_server ;;
-	4) install_tor_squid ;;
+	4) install_dns_forwarder ;;
         5) configure_fqdn_name ;;
         6) install_samba_server ;;
         7) install_sftp_server ;;
