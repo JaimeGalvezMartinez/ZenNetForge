@@ -89,9 +89,12 @@ configure_firewall() {
     done
 }
 
+
+
 install_forwarder_dns() {
     
-#!/bin/bash
+
+
 
 # Ask the user which type of DNS server they want to install
 echo "Select the type of DNS server to install:"
@@ -113,9 +116,9 @@ options {
     
     forwarders {
         8.8.8.8;  // Google DNS
-        8.8.4.4;  // Google DNS
+        8.8.4.4;  // Google Secondary DNS
         1.1.1.1;  // Cloudflare DNS
-        1.0.0.1;  // Cloudflare DNS
+        1.0.0.1;  // Cloudflare Secondary DNS
     };
     
     dnssec-validation auto;
