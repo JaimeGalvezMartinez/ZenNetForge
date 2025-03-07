@@ -547,59 +547,84 @@ echo "==========================================================================
 }
 # Install and configure SFTP Server
 
-install_sftp_server() {
+install_ftp_server_over_ssl() {
 
-# Upgrade system and packages
-echo "Upgrading System..."
-apt update && apt upgrade -y
+#!/bin/bash
 
-# Install OpenSSH (which includes the SFTP server)
-echo "Installing OpenSSH..."
-apt install openssh-server -y
+# Prompt for FTP user and password
+read -p "Enter the FTP username: " FTP_USER
+read -s -p "Enter the FTP password: " FTP_PASSWORD
+echo ""
 
-# Enable and start the SSH service
-echo "Enabling and starting the SSH service..."
-systemctl enable ssh
-systemctl start ssh
+# Update repositories and install vsftpd and OpenSSL
+echo "[+] Installing vsftpd and OpenSSL..."
+sudo apt update -y && sudo apt install vsftpd openssl -y
 
-# Ask the user to choose a username for SFTP access
-read -p "Input the username for access to the SFTP: " username
-# Create a system user
-sudo useradd "$username"
-sudo passwd "$username"
+# Configure vsftpd
+echo "[+] Configuring vsftpd..."
+sudo cp /etc/vsftpd.conf /etc/vsftpd.conf.bak
+cat <<EOF | sudo tee /etc/vsftpd.conf
+listen=YES
+anonymous_enable=NO
+local_enable=YES
+write_enable=YES
+chroot_local_user=YES
+user_sub_token=\$USER
+local_root=/home/\$USER/ftp
+pasv_enable=YES
+pasv_min_port=40000
+pasv_max_port=40100
+allow_writeable_chroot=YES
 
-# Create a directory for the SFTP user (e.g., /home/username/sftp)
-mkdir -p /home/"$username"/sftp
-chown root:root /home/"$username"
-chmod 755 /home/"$username"
+# TLS Security
+ssl_enable=YES
+rsa_cert_file=/etc/ssl/private/vsftpd.pem
+rsa_private_key_file=/etc/ssl/private/vsftpd.pem
+require_ssl_reuse=NO
+ssl_tlsv1=YES
+ssl_sslv2=NO
+ssl_sslv3=NO
+force_local_data_ssl=YES
+force_local_logins_ssl=YES
+EOF
 
-# Set permissions for the SFTP directory for the user
-mkdir -p /home/"$username"/sftp/uploads
-chown "$username":"$username" /home/"$username"/sftp/uploads
-chmod 700 /home/"$username"/sftp/uploads
+# Generate a self-signed TLS certificate
+echo "[+] Generating TLS certificate..."
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout /etc/ssl/private/vsftpd.pem \
+  -out /etc/ssl/private/vsftpd.pem \
+  -subj "/C=US/ST=Security/L=FTPServer/O=Company/CN=ftpserver"
 
-# Configure the SSH config file to restrict access to SFTP only
-echo "Configuring SSH..."
-echo "
-# SFTP configuration for user $username
-Match User $username
-    ForceCommand internal-sftp
-    PasswordAuthentication yes
-    ChrootDirectory /home/$username
-    AllowTcpForwarding no
-    X11Forwarding no
-" >> /etc/ssh/sshd_config
+# Set certificate permissions
+sudo chmod 600 /etc/ssl/private/vsftpd.pem
 
-# Restart the SSH service to apply changes
-systemctl restart ssh
+# Create FTP user
+echo "[+] Creating FTP user..."
+sudo useradd -m -d /home/$FTP_USER -s /usr/sbin/nologin $FTP_USER
+echo -e "$FTP_PASSWORD\n$FTP_PASSWORD" | sudo passwd $FTP_USER
 
-# Verify if the SSH service is active
-if systemctl is-active --quiet ssh; then
-    echo "SFTP server is running correctly."
-else
-    echo "There was a problem starting the SSH server."
-    exit 1
-fi
+# Set up FTP directory and permissions
+echo "[+] Setting up FTP directory and permissions..."
+sudo mkdir -p /home/$FTP_USER/ftp/upload
+sudo chmod 550 /home/$FTP_USER/ftp
+sudo chmod 750 /home/$FTP_USER/ftp/upload
+sudo chown -R $FTP_USER:$FTP_USER /home/$FTP_USER/ftp
+
+# Configure firewall for FTP passive mode and TLS
+echo "[+] Configuring firewall..."
+sudo ufw allow 21/tcp
+sudo ufw allow 40000:40100/tcp
+sudo ufw reload
+
+# Restart vsftpd service
+echo "[+] Restarting vsftpd..."
+sudo systemctl restart vsftpd
+sudo systemctl enable vsftpd
+
+echo "[+] Installation and configuration completed."
+echo "User: $FTP_USER"
+echo "TLS enabled: Yes (Use an FTP client with TLS support)"
+
 }
 # function to install Apache, PHP, MySQL server, MySQL client, Certbot, Bind9, Nextcloud, and required configurations to set up the server.
 
@@ -1022,7 +1047,7 @@ while true; do
 
     case $option in
         1) scan_network ;;
-        2) echo "Exiting..."; exit 0 ;;
+        2) echo "Exiting..."; exit 1 ;;
         *) echo "Invalid option. Please try again." ;;
     esac
 done
@@ -1045,7 +1070,7 @@ while true; do
     echo "4) Install forwarder + cache DNS "
     echo "5) Change FQDN Name"
     echo "6) Configure SAMBA server"
-    echo "7) Configure SFTP server"
+    echo "7) Configure FTP server over SSL Certificate"
     echo "8) Configure Firewall"
     echo "9) Install Nextcloud latest version"
     echo "10) Install Moodle Latest Version"
@@ -1062,7 +1087,7 @@ while true; do
 	4) install_forwarder_dns ;;
         5) configure_fqdn_name ;;
         6) install_samba_server ;;
-        7) install_sftp_server ;;
+        7) install_ftp_server_over_ssl ;;
         8) configure_firewall ;;
         9) nextcloud_install ;;
         10) moodle_install ;;
