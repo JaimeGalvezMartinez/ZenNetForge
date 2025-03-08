@@ -1047,14 +1047,15 @@ EOF
 
 add_node_exporter_to_prometheus() {
     read -p "Enter the IP address of the Node Exporter: " NODE_EXPORTER_IP
+    read -p "Enter the job name for Node Exporter: " JOB_NAME
     echo "Adding Node Exporter job to prometheus.yml..."
     cat <<EOF >> $PROM_DIR/prometheus.yml
 
-  - job_name: 'node_exporter'
+  - job_name: '$JOB_NAME'
     static_configs:
       - targets: ['$NODE_EXPORTER_IP:9100']
 EOF
-    echo "Node Exporter added to Prometheus configuration. Restarting Prometheus..."
+    echo "Node Exporter job '$JOB_NAME' added to Prometheus configuration. Restarting Prometheus..."
     systemctl restart prometheus.service
 }
 
@@ -1087,6 +1088,7 @@ case $CHOICE in
         exit 1
         ;;
 esac
+
 
 # Final message
 echo "--------------------------------------------------"
