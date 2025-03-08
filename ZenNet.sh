@@ -1103,7 +1103,6 @@ GRAFANA_DIR="/etc/grafana"
 GRAFANA_DATA_DIR="/var/lib/grafana"
 GRAFANA_BIN_DIR="/usr/sbin"
 
-install_grafana() {
     echo "Updating system and installing dependencies..."
     apt update && apt install -y adduser libfontconfig1 wget || { echo "Failed to install dependencies"; exit 1; }
     
