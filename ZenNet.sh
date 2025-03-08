@@ -1096,27 +1096,55 @@ echo "--------------------------------------------------"
 }
 configure_graphana () {
 
+# Starting message
+echo "Starting Grafana installation."
 
-Variables
-GRAFANA_VERSION="10.2.2"
-GRAFANA_DIR="/etc/grafana"
-GRAFANA_DATA_DIR="/var/lib/grafana"
-GRAFANA_BIN_DIR="/usr/sbin"
+# Update system repositories
+echo "Updating system repositories..."
+apt update && apt upgrade -y
 
-    echo "Updating system and installing dependencies..."
-    apt update && apt install -y adduser libfontconfig1 wget || { echo "Failed to install dependencies"; exit 1; }
-    
-    echo "Downloading Grafana v$GRAFANA_VERSION..."
-    wget https://dl.grafana.com/oss/release/grafana_$GRAFANA_VERSION_amd64.deb -O /tmp/grafana.deb
-    
-    echo "Installing Grafana..."
-    dpkg -i /tmp/grafana.deb || { echo "Grafana installation failed"; exit 1; }
-    
-    echo "Starting and enabling Grafana service..."
-    systemctl daemon-reload
-    systemctl enable --now grafana-server.service
-    
-    echo "Grafana installation complete! Running on port 3000"
+# Install necessary dependencies
+echo "Installing necessary dependencies..."
+apt install -y software-properties-common wget
+
+# Add the official Grafana repository
+echo "Adding the official Grafana repository..."
+wget -q -O - https://packages.grafana.com/gpg.key | sudo apt-key add -
+echo "deb https://packages.grafana.com/oss/deb stable main" | tee -a /etc/apt/sources.list.d/grafana.list
+
+# Update repositories after adding Grafana
+echo "Updating repositories after adding Grafana..."
+apt update
+
+# Install Grafana
+echo "Installing Grafana..."
+apt install -y grafana
+
+# Verify installation
+if [ $? -eq 0 ]; then
+    echo "Grafana installed successfully."
+else
+    echo "There was a problem installing Grafana. Please check the errors."
+    exit 1
+fi
+
+# Start and enable the Grafana service
+echo "Starting the Grafana service..."
+systemctl start grafana-server
+systemctl enable grafana-server
+
+# Verify the status of Grafana
+echo "Checking the Grafana service status..."
+systemctl status grafana-server --no-pager | grep -i 'active'
+
+# Final message
+echo "Grafana has been successfully installed on the server!"
+echo "You can access the Grafana web interface at http://<YOUR-SERVER-IP>:3000."
+echo "Default username: admin"
+echo "Default password: admin"
+
+# Warning message for first login
+echo "Remember to change the password on the first login."
 }
 
 setup_virtualhost () {
