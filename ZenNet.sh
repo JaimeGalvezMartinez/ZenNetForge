@@ -947,6 +947,179 @@ rm -f $WP_ARCHIVE
 echo "✅ Installation complete. Access http://your-server/wordpress to finish WordPress setup."
 
 }
+configure_prometheus () {
+
+
+# Variables
+PROM_VERSION="2.51.2"
+PROM_USER="prometheus"
+PROM_DIR="/etc/prometheus"
+PROM_DATA_DIR="/var/lib/prometheus"
+PROM_BIN_DIR="/usr/local/bin"
+NODE_EXPORTER_VERSION="1.7.0"
+
+install_prometheus() {
+    echo "Updating system and installing dependencies..."
+    apt update && apt install -y wget tar || { echo "Failed to install dependencies"; exit 1; }
+    
+    echo "Creating Prometheus user..."
+    useradd --no-create-home --shell /bin/false $PROM_USER
+    
+    echo "Creating directories..."
+    mkdir -p $PROM_DIR $PROM_DATA_DIR
+    chown $PROM_USER:$PROM_USER $PROM_DIR $PROM_DATA_DIR
+    
+    echo "Downloading Prometheus v$PROM_VERSION..."
+    wget https://github.com/prometheus/prometheus/releases/download/v$PROM_VERSION/prometheus-$PROM_VERSION.linux-amd64.tar.gz -O /tmp/prometheus.tar.gz
+    
+    echo "Extracting Prometheus..."
+    tar -xzf /tmp/prometheus.tar.gz -C /tmp/
+    cd /tmp/prometheus-$PROM_VERSION.linux-amd64/
+    
+    echo "Installing Prometheus binaries..."
+    mv prometheus promtool $PROM_BIN_DIR/
+    chown $PROM_USER:$PROM_USER $PROM_BIN_DIR/prometheus $PROM_BIN_DIR/promtool
+    
+    echo "Setting up configuration..."
+    mv prometheus.yml $PROM_DIR/
+    chown $PROM_USER:$PROM_USER $PROM_DIR/prometheus.yml
+    
+    echo "Creating Prometheus systemd service..."
+    cat <<EOF > /etc/systemd/system/prometheus.service
+[Unit]
+Description=Prometheus Monitoring System
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=$PROM_USER
+Group=$PROM_USER
+Type=simple
+ExecStart=$PROM_BIN_DIR/prometheus \\
+    --config.file=$PROM_DIR/prometheus.yml \\
+    --storage.tsdb.path=$PROM_DATA_DIR \\
+    --web.listen-address=0.0.0.0:9090 \\
+    --storage.tsdb.retention.time=15d
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    
+    echo "Starting Prometheus service..."
+    systemctl daemon-reload
+    systemctl enable --now prometheus.service
+    echo "Prometheus installation complete! Running on port 9090"
+}
+
+install_node_exporter() {
+    echo "Downloading Node Exporter v$NODE_EXPORTER_VERSION..."
+    wget https://github.com/prometheus/node_exporter/releases/download/v$NODE_EXPORTER_VERSION/node_exporter-$NODE_EXPORTER_VERSION.linux-amd64.tar.gz -O /tmp/node_exporter.tar.gz
+    
+    echo "Extracting Node Exporter..."
+    tar -xzf /tmp/node_exporter.tar.gz -C /tmp/
+    mv /tmp/node_exporter-$NODE_EXPORTER_VERSION.linux-amd64/node_exporter $PROM_BIN_DIR/
+    chown $PROM_USER:$PROM_USER $PROM_BIN_DIR/node_exporter
+    echo "Node Exporter binary installed in: $PROM_BIN_DIR"
+    
+    echo "Creating Node Exporter systemd service..."
+    cat <<EOF > /etc/systemd/system/node_exporter.service
+[Unit]
+Description=Node Exporter
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=$PROM_USER
+Group=$PROM_USER
+Type=simple
+ExecStart=$PROM_BIN_DIR/node_exporter
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    
+    echo "Node Exporter systemd service file created at: /etc/systemd/system/node_exporter.service"
+    
+    systemctl daemon-reload
+    systemctl enable --now node_exporter.service
+    echo "Node Exporter installation complete! Running on port 9100"
+}
+
+add_node_exporter_to_prometheus() {
+    read -p "Enter the IP address of the Node Exporter: " NODE_EXPORTER_IP
+    echo "Adding Node Exporter job to prometheus.yml..."
+    cat <<EOF >> $PROM_DIR/prometheus.yml
+
+  - job_name: 'node_exporter'
+    static_configs:
+      - targets: ['$NODE_EXPORTER_IP:9100']
+EOF
+    echo "Node Exporter added to Prometheus configuration. Restarting Prometheus..."
+    systemctl restart prometheus.service
+}
+
+# Menu for installation
+echo "--------------------------------------------------"
+echo "Choose an option:"
+echo "1) Install Prometheus"
+echo "2) Install Node Exporter"
+echo "3) Add Node Exporter to Prometheus"
+echo "4) Exit"
+echo "--------------------------------------------------"
+read -p "Enter your choice: " CHOICE
+
+case $CHOICE in
+    1)
+        install_prometheus
+        ;;
+    2)
+        install_node_exporter
+        ;;
+    3)
+        add_node_exporter_to_prometheus
+        ;;
+    4)
+        echo "Exiting..."
+        exit 0
+        ;;
+    *)
+        echo "Invalid choice. Exiting..."
+        exit 1
+        ;;
+esac
+
+# Final message
+echo "--------------------------------------------------"
+echo "Installation process complete!"
+echo "--------------------------------------------------"
+
+}
+configure_graphana () {
+
+
+Variables
+GRAFANA_VERSION="10.2.2"
+GRAFANA_DIR="/etc/grafana"
+GRAFANA_DATA_DIR="/var/lib/grafana"
+GRAFANA_BIN_DIR="/usr/sbin"
+
+install_grafana() {
+    echo "Updating system and installing dependencies..."
+    apt update && apt install -y adduser libfontconfig1 wget || { echo "Failed to install dependencies"; exit 1; }
+    
+    echo "Downloading Grafana v$GRAFANA_VERSION..."
+    wget https://dl.grafana.com/oss/release/grafana_$GRAFANA_VERSION_amd64.deb -O /tmp/grafana.deb
+    
+    echo "Installing Grafana..."
+    dpkg -i /tmp/grafana.deb || { echo "Grafana installation failed"; exit 1; }
+    
+    echo "Starting and enabling Grafana service..."
+    systemctl daemon-reload
+    systemctl enable --now grafana-server.service
+    
+    echo "Grafana installation complete! Running on port 3000"
+}
+
 setup_virtualhost () {
 
 
@@ -1076,7 +1249,9 @@ while true; do
     echo "11) Install Wordpress"
     echo "12) VirtualHost Setup"
     echo "13) Network Scan"
-    echo "14) Exit"
+    echo "14) Install Prometheus "
+    echo "15) Install Graphana "
+    echo "16) Exit"
     read -p "Choose an option: " opcion
 
     case $opcion in
@@ -1093,7 +1268,9 @@ while true; do
 	11) wp_install ;;
  	12) setup_virtualhost ;;
         13) network_scan ;;
-        14) echo "Exiting. Goodbye!"; break ;;
+	14) configure_prometheus ;;
+ 	15) configure_graphana ;;
+        16) echo "Exiting. Goodbye!"; break ;;
         *) echo "Invalid option." ;;
     esac
 done
