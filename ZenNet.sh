@@ -1012,37 +1012,70 @@ EOF
 }
 
 install_node_exporter() {
-    echo "Downloading Node Exporter v$NODE_EXPORTER_VERSION..."
-    wget https://github.com/prometheus/node_exporter/releases/download/v$NODE_EXPORTER_VERSION/node_exporter-$NODE_EXPORTER_VERSION.linux-amd64.tar.gz -O /tmp/node_exporter.tar.gz
-    
-    echo "Extracting Node Exporter..."
-    tar -xzf /tmp/node_exporter.tar.gz -C /tmp/
-    mv /tmp/node_exporter-$NODE_EXPORTER_VERSION.linux-amd64/node_exporter $PROM_BIN_DIR/
-    chown $PROM_USER:$PROM_USER $PROM_BIN_DIR/node_exporter
-    echo "Node Exporter binary installed in: $PROM_BIN_DIR"
-    
-    echo "Creating Node Exporter systemd service..."
-    cat <<EOF > /etc/systemd/system/node_exporter.service
+
+    #!/bin/bash
+
+set -e  # Stop script on error
+
+# Update the system
+sudo apt update && sudo apt upgrade -y
+
+# Install required dependencies
+sudo apt install -y wget tar curl
+
+# Get the latest Node Exporter version dynamically
+NODE_EXPORTER_VERSION=$(curl -s https://api.github.com/repos/prometheus/node_exporter/releases/latest | grep -oP '"tag_name": "v\K[0-9.]+')
+
+# Check if Node Exporter is already installed
+if command -v node_exporter &> /dev/null; then
+    echo "Node Exporter is already installed. Skipping installation."
+    exit 0
+fi
+
+# Download Node Exporter
+wget https://github.com/prometheus/node_exporter/releases/download/v$NODE_EXPORTER_VERSION/node_exporter-$NODE_EXPORTER_VERSION.linux-amd64.tar.gz
+
+# Extract the downloaded file
+tar -xvzf node_exporter-$NODE_EXPORTER_VERSION.linux-amd64.tar.gz
+
+# Move the binary to /usr/local/bin
+sudo mv node_exporter-$NODE_EXPORTER_VERSION.linux-amd64/node_exporter /usr/local/bin/
+
+# Remove downloaded files to save space
+rm -rf node_exporter-$NODE_EXPORTER_VERSION.linux-amd64.tar.gz node_exporter-$NODE_EXPORTER_VERSION.linux-amd64
+
+# Ensure the user exists
+if ! id "node_exporter" &>/dev/null; then
+    sudo useradd -rs /bin/false node_exporter
+fi
+
+# Create a systemd service for Node Exporter
+cat << EOF | sudo tee /etc/systemd/system/node_exporter.service
 [Unit]
 Description=Node Exporter
-Wants=network-online.target
-After=network-online.target
+After=network.target
 
 [Service]
-User=$PROM_USER
-Group=$PROM_USER
-Type=simple
-ExecStart=$PROM_BIN_DIR/node_exporter
+User=node_exporter
+Group=node_exporter
+ExecStart=/usr/local/bin/node_exporter
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
 EOF
-    
-    echo "Node Exporter systemd service file created at: /etc/systemd/system/node_exporter.service"
-    
-    systemctl daemon-reload
-    systemctl enable --now node_exporter.service
-    echo "Node Exporter installation complete! Running on port 9100"
+
+# Reload systemd daemon and enable the service
+sudo systemctl daemon-reload
+sudo systemctl enable node_exporter
+sudo systemctl start node_exporter
+
+# Check if Node Exporter is running
+sudo systemctl status node_exporter --no-pager
+
+echo "-----------------------------------"
+echo "Node Exporter installed and running on port 9100"
+echo "-----------------------------------"
+
 }
 
 add_node_exporter_to_prometheus() {
