@@ -547,83 +547,82 @@ echo "==========================================================================
 }
 # Install and configure SFTP Server
 
-install_ftp_server_over_ssl() {
+install_ftp_server_over_ssh() {
 
-#!/bin/bash
 
-# Prompt for FTP user and password
-read -p "Enter the FTP username: " FTP_USER
-read -s -p "Enter the FTP password: " FTP_PASSWORD
+# Prompt user for input
+
+echo "-----------------------------------------------------------------------------------"
+read -p "Enter SFTP group name: " SFTP_GROUP
+read -p "Enter SFTP username: " SFTP_USER
+read -p "Enter SFTP base directory (e.g., /sftp/$SFTP_USER): " SFTP_DIR
+read -s -p "Enter password for $SFTP_USER: " PASSWORD
 echo ""
+echo "-----------------------------------------------------------------------------------"
 
-# Update repositories and install vsftpd and OpenSSL
-echo "[+] Installing vsftpd and OpenSSL..."
-sudo apt update -y && sudo apt install vsftpd openssl -y
+# Validate input
+if [[ -z "$SFTP_GROUP" || -z "$SFTP_USER" || -z "$PASSWORD" ]]; then
+    echo "Error: All fields are required. Please restart the script and provide valid inputs."
+    exit 1
+fi
+SFTP_DIR="${SFTP_DIR:-/sftp/$SFTP_USER}"
 
-# Configure vsftpd
-echo "[+] Configuring vsftpd..."
-sudo cp /etc/vsftpd.conf /etc/vsftpd.conf.bak
-cat <<EOF | sudo tee /etc/vsftpd.conf
-listen=YES
-anonymous_enable=NO
-local_enable=YES
-write_enable=YES
-chroot_local_user=YES
-user_sub_token=\$USER
-local_root=/home/\$USER/ftp
-pasv_enable=YES
-pasv_min_port=40000
-pasv_max_port=40100
-allow_writeable_chroot=YES
+# Install OpenSSH if not installed
+echo "Installing OpenSSH Server..."
+apt update && apt install -y openssh-server || { echo "Failed to install OpenSSH Server"; exit 1; }
 
-# TLS Security
-ssl_enable=YES
-rsa_cert_file=/etc/ssl/private/vsftpd.pem
-rsa_private_key_file=/etc/ssl/private/vsftpd.pem
-require_ssl_reuse=NO
-ssl_tlsv1=YES
-ssl_sslv2=NO
-ssl_sslv3=NO
-force_local_data_ssl=YES
-force_local_logins_ssl=YES
-EOF
+# Create SFTP group if it doesn't exist
+if ! getent group "$SFTP_GROUP" >/dev/null; then
+    echo "Creating group $SFTP_GROUP..."
+    groupadd "$SFTP_GROUP" || { echo "Failed to create group"; exit 1; }
+else
+    echo "Group $SFTP_GROUP already exists."
+fi
 
-# Generate a self-signed TLS certificate
-echo "[+] Generating TLS certificate..."
-sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout /etc/ssl/private/vsftpd.pem \
-  -out /etc/ssl/private/vsftpd.pem \
-  -subj "/C=US/ST=Security/L=FTPServer/O=Company/CN=ftpserver"
+# Create user without SSH access
+if id "$SFTP_USER" &>/dev/null; then
+    echo "User $SFTP_USER already exists."
+else
+    echo "Creating user $SFTP_USER..."
+    useradd -m -d "$SFTP_DIR" -s /usr/sbin/nologin -G "$SFTP_GROUP" "$SFTP_USER" || { echo "Failed to create user"; exit 1; }
+    echo "$SFTP_USER:$PASSWORD" | chpasswd
+fi
 
-# Set certificate permissions
-sudo chmod 600 /etc/ssl/private/vsftpd.pem
+# Set permissions
+echo "Setting permissions for the SFTP directory..."
+mkdir -p "$SFTP_DIR/upload"
+chown root:root "$SFTP_DIR"
+chmod 755 "$SFTP_DIR"
+chown "$SFTP_USER:$SFTP_GROUP" "$SFTP_DIR/upload"
+chmod 750 "$SFTP_DIR/upload"
 
-# Create FTP user
-echo "[+] Creating FTP user..."
-sudo useradd -m -d /home/$FTP_USER -s /usr/sbin/nologin $FTP_USER
-echo -e "$FTP_PASSWORD\n$FTP_PASSWORD" | sudo passwd $FTP_USER
+# Configure SSH for SFTP
+echo "Configuring SSH for SFTP..."
+SSHD_CONFIG="/etc/ssh/sshd_config"
+if ! grep -q "Match Group $SFTP_GROUP" "$SSHD_CONFIG"; then
+    echo "Match Group $SFTP_GROUP
+    ChrootDirectory $SFTP_DIR
+    ForceCommand internal-sftp
+    X11Forwarding no
+    AllowTcpForwarding no" >> "$SSHD_CONFIG"
+else
+    echo "SFTP configuration for group $SFTP_GROUP already exists in $SSHD_CONFIG."
+fi
 
-# Set up FTP directory and permissions
-echo "[+] Setting up FTP directory and permissions..."
-sudo mkdir -p /home/$FTP_USER/ftp/upload
-sudo chmod 550 /home/$FTP_USER/ftp
-sudo chmod 750 /home/$FTP_USER/ftp/upload
-sudo chown -R $FTP_USER:$FTP_USER /home/$FTP_USER/ftp
+# Restart SSH service
+echo "Restarting SSH service..."
+systemctl restart ssh || { echo "Failed to restart SSH service"; exit 1; }
 
-# Configure firewall for FTP passive mode and TLS
-echo "[+] Configuring firewall..."
-sudo ufw allow 21/tcp
-sudo ufw allow 40000:40100/tcp
-sudo ufw reload
-
-# Restart vsftpd service
-echo "[+] Restarting vsftpd..."
-sudo systemctl restart vsftpd
-sudo systemctl enable vsftpd
-
-echo "[+] Installation and configuration completed."
-echo "User: $FTP_USER"
-echo "TLS enabled: Yes (Use an FTP client with TLS support)"
+# Final message
+echo "SFTP setup complete. User $SFTP_USER can now connect using SFTP."
+echo "-----------------------------------------------------------------------------------"
+echo "To connect using FileZilla:"
+echo "- Host: Your server's IP address"
+echo "- Username: $SFTP_USER"
+echo "- Password: (the one you set)"
+echo "- Port: 22"
+echo "- Protocol: SFTP - SSH File Transfer Protocol"
+echo "-----------------------------------------------------------------------------------"
 
 }
 # function to install Apache, PHP, MySQL server, MySQL client, Certbot, Bind9, Nextcloud, and required configurations to set up the server.
@@ -1070,7 +1069,7 @@ while true; do
     echo "4) Install forwarder + cache DNS "
     echo "5) Change FQDN Name"
     echo "6) Configure SAMBA server"
-    echo "7) Configure FTP server over SSL Certificate"
+    echo "7) Configure FTP server over SSH"
     echo "8) Configure Firewall"
     echo "9) Install Nextcloud latest version"
     echo "10) Install Moodle Latest Version"
@@ -1087,7 +1086,7 @@ while true; do
 	4) install_forwarder_dns ;;
         5) configure_fqdn_name ;;
         6) install_samba_server ;;
-        7) install_ftp_server_over_ssl ;;
+        7) install_ftp_server_over_ssh ;;
         8) configure_firewall ;;
         9) nextcloud_install ;;
         10) moodle_install ;;
