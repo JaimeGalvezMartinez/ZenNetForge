@@ -1138,6 +1138,7 @@ echo "Checking the Grafana service status..."
 systemctl status grafana-server --no-pager | grep -i 'active'
 
 # Final message
+echo "----------------------------------------------------------------------------------"
 echo "Grafana has been successfully installed on the server!"
 echo "You can access the Grafana web interface at http://<YOUR-SERVER-IP>:3000."
 echo "Default username: admin"
@@ -1145,6 +1146,8 @@ echo "Default password: admin"
 
 # Warning message for first login
 echo "Remember to change the password on the first login."
+echo "-----------------------------------------------------------------------------------"
+
 }
 
 setup_virtualhost () {
