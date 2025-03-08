@@ -1013,7 +1013,6 @@ EOF
 
 install_node_exporter() {
 
-    #!/bin/bash
 
 set -e  # Stop script on error
 
@@ -1073,7 +1072,7 @@ sudo systemctl start node_exporter
 sudo systemctl status node_exporter --no-pager
 
 echo "-----------------------------------"
-echo "Node Exporter installed and running on port 9100"
+echo " ✅ Node Exporter installed and running on port 9100"
 echo "-----------------------------------"
 
 }
