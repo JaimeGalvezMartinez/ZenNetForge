@@ -1019,6 +1019,13 @@ echo "✅ Installation complete. Access http://your-server/wordpress to finish W
 
 manage_certbot() {
 
+#!/bin/bash
+
+# Function to list installed SSL certificates
+list_certificates() {
+  echo "Listing installed SSL certificates..."
+  certbot certificates || { echo "Failed to list certificates"; exit 1; }
+}
 
 # Function to install Certbot and set up a certificate
 install_certificate() {
@@ -1065,27 +1072,6 @@ install_certificate() {
   systemctl start certbot.timer || { echo "Failed to start certbot.timer"; exit 1; }
 
   echo "SSL certificate successfully installed for $domain."
-}
-
-# Menu options
-echo "Select an option:"
-echo "1. Install Certbot and set up an SSL certificate"
-echo "2. List installed SSL certificates"
-read -p "Option: " option
-
-case $option in
-  1)
-    install_certificate
-    ;;
-  2)
-    list_certificates
-    ;;
-  *)
-    echo "Invalid option. Exiting..."
-    exit 1
-    ;;
-esac
-
 }
 
 # Menu options
