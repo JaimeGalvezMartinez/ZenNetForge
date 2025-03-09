@@ -461,11 +461,9 @@ case $OPTION in
         # Ask the user for the networks to block
         echo "Enter the first network to block (example: 192.168.1.0/24):"
         read RED1
-        echo "Enter the second network to block (example: 192.168.2.0/24):"
-        read RED2
 
         # Validate the networks
-        if [[ ! "$RED1" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(/[0-9]+)?$ ]] || [[ ! "$RED2" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(/[0-9]+)?$ ]]; then
+        if [[ ! "$RED1" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(/[0-9]+)?$ ]]; then
             echo "The entered networks are not in the correct format."
             exit 1
         fi
@@ -1547,7 +1545,7 @@ while true; do
     echo "14) Install & Configure Prometheus "
     echo "15) Install Graphana "
     echo "16) Show system Informaton "
-    echo "17) Make Backup "
+    echo "17) Configure ACL "
     echo "18) Exit"
     read -p "Choose an option: " opcion
 
@@ -1569,7 +1567,7 @@ while true; do
 	14) configure_prometheus ;;
  	15) configure_graphana ;;
   	16) show_system_info ;;
-   	17) make_backup2 ;;
+   	17) configure_acl ;;
         18) echo "Exiting. Goodbye!"; break ;;
         *) echo "Invalid option." ;;
     esac
