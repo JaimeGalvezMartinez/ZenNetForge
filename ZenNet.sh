@@ -1016,6 +1016,75 @@ rm -f $WP_ARCHIVE
 echo "✅ Installation complete. Access http://your-server/wordpress to finish WordPress setup."
 
 }
+
+manage_certbot() {
+
+# Function to list installed SSL certificates
+list_certificates() {
+  echo "Listing installed SSL certificates..."
+  certbot certificates
+}
+
+# Function to install Certbot and set up a certificate
+install_certificate() {
+  # Prompt for the domain
+  read -p "Enter the domain for the SSL certificate: " domain
+
+  # Update repositories and ensure the system is up to date
+  apt update && apt upgrade -y
+
+  # Install the necessary software for Certbot
+  apt install -y software-properties-common
+
+  # Add Certbot repository
+  add-apt-repository ppa:certbot/certbot -y
+  apt update
+
+  # Install Certbot and the plugin for Nginx or Apache (Nginx in this case)
+  apt install -y certbot python3-certbot-nginx
+
+  # Check if Nginx or Apache is in use (optional)
+  if systemctl is-active --quiet nginx; then
+    web_server="nginx"
+  elif systemctl is-active --quiet apache2; then
+    web_server="apache2"
+  else
+    echo "Nginx or Apache wasn´t detected. Ensure you have one of them installed."
+    exit 1
+  fi
+
+  # Run Certbot to obtain the SSL certificate
+  echo "Obtaining SSL certificate for $domain..."
+  certbot --nginx -d "$domain" --agree-tos --no-eff-email --email your-email@domain.com
+
+  # Set up automatic certificate renewal
+  echo "Setting up automatic renewal..."
+  systemctl enable certbot.timer
+  systemctl start certbot.timer
+
+  echo "SSL certificate successfully installed for $domain."
+}
+
+# Menu options
+echo "Select an option:"
+echo "1. Install Certbot and set up an SSL certificate"
+echo "2. List installed SSL certificates"
+read -p "Option: " option
+
+case $option in
+  1)
+    install_certificate
+    ;;
+  2)
+    list_certificates
+    ;;
+  *)
+    echo "Invalid option. Exiting..."
+    exit 1
+    ;;
+esac
+
+}
 configure_prometheus () {
 
 
@@ -1474,50 +1543,6 @@ echo "-----------------------------------"
 
 }
 
-make_backup2() {
-
-#clean the screen wthen execute
-clear
-
-
-echo "        ██████╗  █████╗  ██████╗██╗  ██╗██╗   ██╗██████╗     ███████╗ ██████╗██████╗ ██╗██████╗ ████████╗ "
-echo "        ██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██║   ██║██╔══██╗    ██╔════╝██╔════╝██╔══██╗██║██╔══██╗╚══██╔══╝ "
-echo "        ██████╔╝███████║██║     █████╔╝ ██║   ██║██████╔╝    ███████╗██║     ██████╔╝██║██████╔╝   ██║   "
-echo "        ██╔══██╗██╔══██║██║     ██╔═██╗ ██║   ██║██╔═══╝     ╚════██║██║     ██╔══██╗██║██╔═══╝    ██║   "
-echo "        ██████╔╝██║  ██║╚██████╗██║  ██╗╚██████╔╝██║         ███████║╚██████╗██║  ██║██║██║        ██║   "
-echo "        ╚═════╝ ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝         ╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝╚═╝        ╚═╝   "
-echo "                                                                                                " 
-#make backup
-make_backup() {
-    local source=$1
-    local destination=$2
-    if [ -d "$source" ]; then
-        timestamp=$(date +"%Y%m%d_%H%M%S")
-        backup_file="$destination/backup_$timestamp.tar.gz"
-        sudo tar -czvf "$backup_file" -C "$source" .
-        echo "Backup created at: $backup_file"
-    else
-        echo "Source directory does not exist."
-    fi
-}
-# Prompt for source directory
-read -p "Enter the path of the directory you want to backup: " source_path
-
-# Prompt for destination path
-read -p "Enter the path where you want to save the backup: " destination_path
-
-# Create destination directory if it doesn't exist
-if [ ! -d "$destination_path" ]; then
-    sudo mkdir -p "$destination_path"
-    echo "Created destination directory: $destination_path"
-else
-    echo "Destination directory already exists: $destination_path"
-fi
-
-# make the backup
-make_backup "$source_path" "$destination_path"
-
-}
 
 # Main Menu
 while true; do
@@ -1546,7 +1571,8 @@ while true; do
     echo "15) Install Graphana "
     echo "16) Show system Informaton "
     echo "17) Configure ACL "
-    echo "18) Exit"
+    echo "18) Cerbot Management "
+    echo "19) Exit"
     read -p "Choose an option: " opcion
 
     # case for execute the fuctions
@@ -1568,7 +1594,8 @@ while true; do
  	15) configure_graphana ;;
   	16) show_system_info ;;
    	17) configure_acl ;;
-        18) echo "Exiting. Goodbye!"; break ;;
+        18) manage_certbot ;;
+        19) echo "Exiting. Goodbye!"; break ;;
         *) echo "Invalid option." ;;
     esac
 done
