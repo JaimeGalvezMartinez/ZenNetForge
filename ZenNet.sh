@@ -1405,7 +1405,7 @@ echo "-----------------------------------"
 
 }
 
-make_backup() {
+make_backup2() {
 
  
 echo "        ██████╗  █████╗  ██████╗██╗  ██╗██╗   ██╗██████╗     ███████╗ ██████╗██████╗ ██╗██████╗ ████████╗ "
@@ -1494,7 +1494,7 @@ while true; do
 	14) configure_prometheus ;;
  	15) configure_graphana ;;
   	16) show_system_info ;;
-   	17) make_backup ;;
+   	17) make_backup2 ;;
         18) echo "Exiting. Goodbye!"; break ;;
         *) echo "Invalid option." ;;
     esac
