@@ -446,6 +446,76 @@ EOL
     echo "DHCP server configured and restarted."
 }
 
+
+configure_acl(){
+
+
+# Ask the user what they want to configure
+echo "What would you like to configure?"
+echo "1) Block networks"
+echo "2) Configure QoS"
+read -p "Choose an option (1 or 2): " OPTION
+
+case $OPTION in
+    1)
+        # Ask the user for the networks to block
+        echo "Enter the first network to block (example: 192.168.1.0/24):"
+        read RED1
+        echo "Enter the second network to block (example: 192.168.2.0/24):"
+        read RED2
+
+        # Validate the networks
+        if [[ ! "$RED1" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(/[0-9]+)?$ ]] || [[ ! "$RED2" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(/[0-9]+)?$ ]]; then
+            echo "The entered networks are not in the correct format."
+            exit 1
+        fi
+
+        echo "Enter the LAN network interface (example: eth0):"
+        read LAN_IF
+
+        # Block communication between RED1 and RED2
+        iptables -A FORWARD -s "$RED1" -d "$RED2" -i "$LAN_IF" -j DROP
+        iptables -A FORWARD -s "$RED2" -d "$RED1" -i "$LAN_IF" -j DROP
+
+        # Save the rules to persist after reboot
+        iptables-save > /etc/iptables.rules
+
+        echo "ACL rules configured to block communication between $RED1 and $RED2 on the interface $LAN_IF"
+        ;;
+    
+    2)
+        # Configure QoS on the LAN interface
+        echo "Enter the LAN network interface (example: eth0):"
+        read LAN_IF
+        echo "Enter the bandwidth limit in Kbps (example: 1000):"
+        read BANDWIDTH
+
+        # Validate the bandwidth
+        if ! [[ "$BANDWIDTH" =~ ^[0-9]+$ ]]; then
+            echo "The bandwidth limit must be an integer number."
+            exit 1
+        fi
+
+        tc qdisc add dev "$LAN_IF" root handle 1: htb default 10
+        tc class add dev "$LAN_IF" parent 1: classid 1:1 htb rate "${BANDWIDTH}kbit"
+        tc filter add dev "$LAN_IF" protocol ip parent 1:0 prio 1 handle 1 fw flowid 1:1
+
+        # Save the rules to persist after reboot
+        echo "tc qdisc add dev $LAN_IF root handle 1: htb default 10" >> /etc/qos.rules
+        echo "tc class add dev $LAN_IF parent 1: classid 1:1 htb rate ${BANDWIDTH}kbit" >> /etc/qos.rules
+        echo "tc filter add dev $LAN_IF protocol ip parent 1:0 prio 1 handle 1 fw flowid 1:1" >> /etc/qos.rules
+
+        echo "QoS configured with a bandwidth limit of ${BANDWIDTH} Kbps on the interface $LAN_IF"
+        ;;
+    
+    *)
+        echo "Invalid option. Exiting."
+        exit 1
+        ;;
+esac
+
+}
+
 # Change FQDN Name
 configure_fqdn_name() {
 
@@ -461,6 +531,7 @@ configure_fqdn_name() {
     echo "================================================"
     echo ""
     echo ""
+
 }
 
 # Install samba server
