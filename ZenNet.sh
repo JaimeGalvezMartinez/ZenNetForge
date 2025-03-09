@@ -1473,13 +1473,14 @@ while true; do
     echo "11) Install Wordpress"
     echo "12) VirtualHost Setup"
     echo "13) Network Scan"
-    echo "14) Install Prometheus "
+    echo "14) Install & Configure Prometheus "
     echo "15) Install Graphana "
     echo "16) Show system Informaton "
     echo "17) Make Backup "
     echo "18) Exit"
     read -p "Choose an option: " opcion
 
+    # case for execute the fuctions
     case $opcion in
         1) configure_network ;;
         2) configure_gateway_server ;;
