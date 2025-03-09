@@ -1018,51 +1018,80 @@ echo "✅ Installation complete. Access http://your-server/wordpress to finish W
 }
 
 manage_certbot() {
+#!/bin/bash
 
 # Function to list installed SSL certificates
 list_certificates() {
   echo "Listing installed SSL certificates..."
-  certbot certificates
+  certbot certificates || { echo "Failed to list certificates"; exit 1; }
 }
 
 # Function to install Certbot and set up a certificate
 install_certificate() {
-  # Prompt for the domain
+  # Prompt for the domain and email
   read -p "Enter the domain for the SSL certificate: " domain
+  read -p "Enter your email address: " email
 
   # Update repositories and ensure the system is up to date
-  apt update && apt upgrade -y
+  echo "Updating repositories and upgrading system..."
+  apt update && apt upgrade -y || { echo "Failed to update system"; exit 1; }
 
-  # Install the necessary software for Certbot
-  apt install -y software-properties-common
+  # Install necessary software for Certbot if not already installed
+  if ! command -v certbot &> /dev/null; then
+    echo "Certbot not found, installing..."
+    apt install -y software-properties-common || { echo "Failed to install software-properties-common"; exit 1; }
+    add-apt-repository ppa:certbot/certbot -y || { echo "Failed to add Certbot repository"; exit 1; }
+    apt update
+    apt install -y certbot python3-certbot-nginx python3-certbot-apache || { echo "Failed to install Certbot"; exit 1; }
+  else
+    echo "Certbot is already installed."
+  fi
 
-  # Add Certbot repository
-  add-apt-repository ppa:certbot/certbot -y
-  apt update
-
-  # Install Certbot and the plugin for Nginx or Apache (Nginx in this case)
-  apt install -y certbot python3-certbot-nginx
-
-  # Check if Nginx or Apache is in use (optional)
+  # Check if Nginx or Apache is in use
   if systemctl is-active --quiet nginx; then
     web_server="nginx"
   elif systemctl is-active --quiet apache2; then
     web_server="apache2"
   else
-    echo "Nginx or Apache wasn´t detected. Ensure you have one of them installed."
+    echo "Neither Nginx nor Apache was detected. Ensure you have one of them installed."
     exit 1
   fi
 
-  # Run Certbot to obtain the SSL certificate
-  echo "Obtaining SSL certificate for $domain..."
-  certbot --nginx -d "$domain" --agree-tos --no-eff-email --email your-email@domain.com
+  # Run Certbot to obtain the SSL certificate based on the web server
+  echo "Obtaining SSL certificate for $domain using $web_server..."
+  if [ "$web_server" == "nginx" ]; then
+    certbot --nginx -d "$domain" --agree-tos --no-eff-email --email "$email" || { echo "Failed to obtain SSL certificate for Nginx"; exit 1; }
+  elif [ "$web_server" == "apache2" ]; then
+    certbot --apache -d "$domain" --agree-tos --no-eff-email --email "$email" || { echo "Failed to obtain SSL certificate for Apache"; exit 1; }
+  fi
 
   # Set up automatic certificate renewal
   echo "Setting up automatic renewal..."
-  systemctl enable certbot.timer
-  systemctl start certbot.timer
+  systemctl enable certbot.timer || { echo "Failed to enable certbot.timer"; exit 1; }
+  systemctl start certbot.timer || { echo "Failed to start certbot.timer"; exit 1; }
 
   echo "SSL certificate successfully installed for $domain."
+}
+
+# Menu options
+echo "Select an option:"
+echo "1. Install Certbot and set up an SSL certificate"
+echo "2. List installed SSL certificates"
+read -p "Option: " option
+
+case $option in
+  1)
+    install_certificate
+    ;;
+  2)
+    list_certificates
+    ;;
+  *)
+    echo "Invalid option. Exiting..."
+    exit 1
+    ;;
+esac
+
 }
 
 # Menu options
