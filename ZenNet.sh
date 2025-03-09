@@ -1176,6 +1176,7 @@ EOF
     systemctl daemon-reload
     systemctl enable --now prometheus.service
     echo "Prometheus installation complete! Running on port 9090"
+    echo "Directory of prometheus: $PROM_DIR"
 }
 
 install_node_exporter() {
