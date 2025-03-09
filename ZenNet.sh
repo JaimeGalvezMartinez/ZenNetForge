@@ -1018,13 +1018,7 @@ echo "✅ Installation complete. Access http://your-server/wordpress to finish W
 }
 
 manage_certbot() {
-#!/bin/bash
 
-# Function to list installed SSL certificates
-list_certificates() {
-  echo "Listing installed SSL certificates..."
-  certbot certificates || { echo "Failed to list certificates"; exit 1; }
-}
 
 # Function to install Certbot and set up a certificate
 install_certificate() {
