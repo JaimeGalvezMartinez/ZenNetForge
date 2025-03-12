@@ -462,44 +462,45 @@ case $OPTION in
     1)
 
 	# Ask for network interfaces and WAN network
-	read -p "Enter the WAN interface name: " WAN_IF
-	read -p "Enter the LAN interface name: " LAN_IF
-	read -p "Enter the WAN network (e.g., 192.168.1.0/24): " WAN_NET
+read -p "Enter the WAN interface name: " WAN_IF
+read -p "Enter the LAN interface name: " LAN_IF
+read -p "Enter the WAN network (e.g., 192.168.1.0/24): " WAN_NET
 
-	# Enable IP forwarding
-	echo 1 > /proc/sys/net/ipv4/ip_forward
+# Enable IP forwarding
+echo 1 > /proc/sys/net/ipv4/ip_forward
 
-	# Clear previous rules
-	iptables -F
-	iptables -X
-	iptables -t nat -F
-	iptables -t nat -X
+# Clear previous rules
+iptables -F
+iptables -X
+iptables -t nat -F
+iptables -t nat -X
 
-	# Allow loopback traffic
-	iptables -A INPUT -i lo -j ACCEPT
-	iptables -A OUTPUT -o lo -j ACCEPT
+# Allow loopback traffic
+iptables -A INPUT -i lo -j ACCEPT
+iptables -A OUTPUT -o lo -j ACCEPT
 
-	# Allow LAN -> Internet traffic
-	iptables -A FORWARD -i $LAN_IF -o $WAN_IF -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
-	iptables -A FORWARD -i $WAN_IF -o $LAN_IF -m state --state ESTABLISHED,RELATED -j ACCEPT
+# Block LAN -> WAN internal network traffic
+iptables -A FORWARD -i $LAN_IF -o $WAN_IF -d $WAN_NET -j DROP
 
-	# Block LAN -> WAN internal network traffic
-	iptables -A FORWARD -i $LAN_IF -o $WAN_IF -d $WAN_NET -j DROP
+# Allow LAN -> Internet traffic
+iptables -A FORWARD -i $LAN_IF -o $WAN_IF -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
+iptables -A FORWARD -i $WAN_IF -o $LAN_IF -m state --state ESTABLISHED,RELATED -j ACCEPT
 
-	# Enable NAT for internet access
-	iptables -t nat -A POSTROUTING -o $WAN_IF -j MASQUERADE
+# Enable NAT for internet access
+iptables -t nat -A POSTROUTING -o $WAN_IF -j MASQUERADE
 
-	# Save rules
-	iptables-save > /etc/iptables.rules
+# Save rules
+iptables-save > /etc/iptables.rules
 
-	# Apply rules on startup (optional)
-	echo -e "#!/bin/sh\n/sbin/iptables-restore < /etc/iptables.rules" > /etc/network/if-pre-up.d/iptables
-	chmod +x /etc/network/if-pre-up.d/iptables
+# Apply rules on startup (optional)
+echo -e "#!/bin/sh\n/sbin/iptables-restore < /etc/iptables.rules" > /etc/network/if-pre-up.d/iptables
+chmod +x /etc/network/if-pre-up.d/iptables
 
-	# Display configured rules
-	iptables -L -v -n
+# Display configured rules
+iptables -L -v -n
 
-	echo "Configuration completed."
+echo "Configuration completed."
+
  ;;
 
     
