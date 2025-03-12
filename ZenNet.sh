@@ -461,6 +461,7 @@ read -p "Choose an option (1 or 2): " OPTION
 case $OPTION in
     1)
 
+
 # Display available network interfaces
 echo "Available network interfaces:"
 ip link show | awk -F': ' '/^[0-9]+: / {print $2}'
@@ -498,15 +499,21 @@ iptables -t nat -X
 echo "Setting default policies..."
 iptables -P INPUT DROP
 iptables -P FORWARD DROP
-iptables -P OUTPUT ACCEPT  # Allow outgoing traffic from the router
+iptables -P OUTPUT ACCEPT  # Allow outgoing traffic from the gateway
 
 # Allow loopback traffic
 iptables -A INPUT -i lo -j ACCEPT
 iptables -A OUTPUT -o lo -j ACCEPT
 
-# Configure firewall rules
+# Allow the gateway itself to access the internet
+echo "Allowing the gateway to access the internet..."
+iptables -A INPUT -i "$WAN_IF" -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+# Block LAN -> WAN internal network traffic
 echo "Configuring firewall rules..."
-iptables -A FORWARD -i "$LAN_IF" -o "$WAN_IF" -d "$WAN_NET" -j DROP  # Block LAN -> WAN internal network traffic
+iptables -A FORWARD -i "$LAN_IF" -o "$WAN_IF" -d "$WAN_NET" -j DROP  
+
+# Allow LAN -> Internet traffic
 iptables -A FORWARD -i "$LAN_IF" -o "$WAN_IF" -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
 iptables -A FORWARD -i "$WAN_IF" -o "$LAN_IF" -m state --state ESTABLISHED,RELATED -j ACCEPT
 
