@@ -452,34 +452,55 @@ configure_acl(){
 
 # Ask the user what they want to configure
 echo "What would you like to configure?"
-echo "1) Block networks"
+echo "1) Block Traffic To LAN to WAN Network"
+echo " ----------------------------------------"
 echo "2) Configure QoS"
+echo "-----------------------------------------"
 read -p "Choose an option (1 or 2): " OPTION
 
 case $OPTION in
     1)
-        # Ask the user for the networks to block
-        echo "Enter the first network to block (example: 192.168.1.0/24):"
-        read RED1
 
-        # Validate the networks
-        if [[ ! "$RED1" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(/[0-9]+)?$ ]]; then
-            echo "The entered networks are not in the correct format."
-            exit 1
-        fi
+	# Ask for network interfaces and WAN network
+	read -p "Enter the WAN interface name: " WAN_IF
+	read -p "Enter the LAN interface name: " LAN_IF
+	read -p "Enter the WAN network (e.g., 192.168.1.0/24): " WAN_NET
 
-        echo "Enter the LAN network interface (example: eth0):"
-        read LAN_IF
+	# Enable IP forwarding
+	echo 1 > /proc/sys/net/ipv4/ip_forward
 
-        # Block communication between RED1 and RED2
-        iptables -A FORWARD -s "$RED1" -d "$RED2" -i "$LAN_IF" -j DROP
-        iptables -A FORWARD -s "$RED2" -d "$RED1" -i "$LAN_IF" -j DROP
+	# Clear previous rules
+	iptables -F
+	iptables -X
+	iptables -t nat -F
+	iptables -t nat -X
 
-        # Save the rules to persist after reboot
-        iptables-save > /etc/iptables.rules
+	# Allow loopback traffic
+	iptables -A INPUT -i lo -j ACCEPT
+	iptables -A OUTPUT -o lo -j ACCEPT
 
-        echo "ACL rules configured to block communication between $RED1 and $RED2 on the interface $LAN_IF"
-        ;;
+	# Allow LAN -> Internet traffic
+	iptables -A FORWARD -i $LAN_IF -o $WAN_IF -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
+	iptables -A FORWARD -i $WAN_IF -o $LAN_IF -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+	# Block LAN -> WAN internal network traffic
+	iptables -A FORWARD -i $LAN_IF -o $WAN_IF -d $WAN_NET -j DROP
+
+	# Enable NAT for internet access
+	iptables -t nat -A POSTROUTING -o $WAN_IF -j MASQUERADE
+
+	# Save rules
+	iptables-save > /etc/iptables.rules
+
+	# Apply rules on startup (optional)
+	echo -e "#!/bin/sh\n/sbin/iptables-restore < /etc/iptables.rules" > /etc/network/if-pre-up.d/iptables
+	chmod +x /etc/network/if-pre-up.d/iptables
+
+	# Display configured rules
+	iptables -L -v -n
+
+	echo "Configuration completed."
+
     
     2)
         # Configure QoS on the LAN interface
