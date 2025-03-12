@@ -500,6 +500,7 @@ case $OPTION in
 	iptables -L -v -n
 
 	echo "Configuration completed."
+ ;;
 
     
     2)
