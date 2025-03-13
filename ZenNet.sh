@@ -1085,7 +1085,6 @@ echo "✅ Installation complete. Access http://your-server/wordpress to finish W
 
 manage_certbot() {
 
-#!/bin/bash
 
 # Function to list installed SSL certificates
 list_certificates() {
