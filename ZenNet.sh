@@ -1157,6 +1157,111 @@ case $option in
     exit 1
     ;;
 esac
+}
+
+install_bitwarden_web_vault_as_a_service () {
+
+
+# Variables
+INSTALL_DIR="/opt/vaultwarden"
+USER="vaultwarden"
+SERVICE_FILE="/etc/systemd/system/vaultwarden.service"
+PORT_HTTP="8080"  # Puerto HTTP para Vaultwarden
+PORT_HTTPS="8443" # Puerto HTTPS para Vaultwarden
+
+# Check if running as root
+if [ "$(id -u)" -ne 0 ]; then
+    echo "❌ This script must be run as root."
+    exit 1
+fi
+
+echo "🔄 Updating system packages..."
+apt update && apt upgrade -y
+
+echo "🛠️ Installing required dependencies..."
+apt install -y unzip curl sqlite3 sudo certbot python3-certbot ufw
+
+echo "👤 Creating user and directory for Vaultwarden..."
+id "$USER" &>/dev/null || useradd -r -m -U -d "$INSTALL_DIR" -s /usr/sbin/nologin "$USER"
+mkdir -p "$INSTALL_DIR/data"
+chown -R "$USER:$USER" "$INSTALL_DIR"
+
+echo "📥 Downloading Vaultwarden..."
+cd "$INSTALL_DIR"
+wget -q https://github.com/dani-garcia/vaultwarden/releases/latest/download/vaultwarden-linux-amd64.tar.gz
+tar -xzf vaultwarden-linux-amd64.tar.gz
+rm vaultwarden-linux-amd64.tar.gz
+chown "$USER:$USER" "$INSTALL_DIR/vaultwarden"
+
+echo "⚙️ Configuring Vaultwarden..."
+cat <<EOF > "$INSTALL_DIR/.env"
+DATA_FOLDER=$INSTALL_DIR/data
+WEBSOCKET_ENABLED=true
+LOG_FILE=$INSTALL_DIR/vaultwarden.log
+ROCKET_PORT=$PORT_HTTP
+EOF
+chmod 640 "$INSTALL_DIR/.env"
+chown "$USER:$USER" "$INSTALL_DIR/.env"
+
+echo "📝 Creating systemd service..."
+cat <<EOF > "$SERVICE_FILE"
+[Unit]
+Description=Vaultwarden (Bitwarden alternative)
+After=network.target
+
+[Service]
+User=$USER
+Group=$USER
+WorkingDirectory=$INSTALL_DIR
+ExecStart=$INSTALL_DIR/vaultwarden
+Restart=always
+LimitNOFILE=1024
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+echo "🔄 Reloading systemd and enabling the service..."
+systemctl daemon-reload
+systemctl enable --now vaultwarden
+
+echo "🌍 Configuring Firewall..."
+ufw allow $PORT_HTTP/tcp
+ufw allow $PORT_HTTPS/tcp
+ufw enable
+
+echo "✅ Vaultwarden is installed and running on port $PORT_HTTP."
+echo "🚀 Access it via: http://your-server:$PORT_HTTP"
+
+# Ask if the user wants to install HTTPS with Certbot
+read -p "Would you like to configure HTTPS with Certbot? (y/n): " install_https
+if [[ "$install_https" =~ ^[Yy]$ ]]; then
+    read -p "Enter your domain (e.g., example.com): " domain
+
+    echo "📌 Stopping Vaultwarden to free up port 80 for Certbot..."
+    systemctl stop vaultwarden
+
+    certbot certonly --standalone -d "$domain" --non-interactive --agree-tos -m admin@$domain
+
+    echo "🔐 Configuring Vaultwarden to use HTTPS on port $PORT_HTTPS..."
+    cat <<EOF >> "$INSTALL_DIR/.env"
+ROCKET_TLS={certs="$INSTALL_DIR/fullchain.pem",key="$INSTALL_DIR/privkey.pem"}
+ROCKET_PORT=$PORT_HTTPS
+EOF
+
+    ln -sf /etc/letsencrypt/live/$domain/fullchain.pem "$INSTALL_DIR/fullchain.pem"
+    ln -sf /etc/letsencrypt/live/$domain/privkey.pem "$INSTALL_DIR/privkey.pem"
+
+    echo "🔄 Restarting Vaultwarden with HTTPS enabled..."
+    systemctl start vaultwarden
+
+    echo "✅ HTTPS is now enabled. Access Vaultwarden via: https://$domain:$PORT_HTTPS"
+else
+    echo "⚠️ HTTPS was not configured. Your Vaultwarden instance is only accessible via HTTP on port $PORT_HTTP."
+fi
+
+echo "🎉 Installation completed successfully!"
 
 }
 configure_prometheus () {
@@ -1647,7 +1752,8 @@ while true; do
     echo "16) Show system Informaton "
     echo "17) Configure ACL "
     echo "18) Cerbot Management "
-    echo "19) Exit"
+    echo "19) Install bitwarden web vault as a service"
+    echo "20) Exit"
     read -p "Choose an option: " opcion
 
     # case for execute the fuctions
@@ -1670,7 +1776,8 @@ while true; do
   	16) show_system_info ;;
    	17) configure_acl ;;
         18) manage_certbot ;;
-        19) echo "Exiting. Goodbye!"; break ;;
+	19) install_bitwarden_web_vault_as_a_service ;;
+        20) echo "Exiting. Goodbye!"; break ;;
         *) echo "Invalid option." ;;
     esac
 done
