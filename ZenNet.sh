@@ -1226,10 +1226,6 @@ echo "🔄 Reloading systemd and enabling the service..."
 systemctl daemon-reload
 systemctl enable --now vaultwarden
 
-echo "🌍 Configuring Firewall..."
-ufw allow $PORT_HTTP/tcp
-ufw allow $PORT_HTTPS/tcp
-ufw enable
 
 echo "✅ Vaultwarden is installed and running on port $PORT_HTTP."
 echo "🚀 Access it via: http://your-server:$PORT_HTTP"
