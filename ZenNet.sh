@@ -1160,106 +1160,298 @@ esac
 }
 
 install_bitwarden_web_vault_as_a_service () {
+#!/usr/bin/env bash
+set -e
 
+cat << "EOF"
+ _     _ _                         _
+| |__ (_) |___      ____ _ _ __ __| | ___ _ __
+| '_ \| | __\ \ /\ / / _` | '__/ _` |/ _ \ '_ \
+| |_) | | |_ \ V  V / (_| | | | (_| |  __/ | | |
+|_.__/|_|\__| \_/\_/ \__,_|_|  \__,_|\___|_| |_|
 
-# Variables
-INSTALL_DIR="/opt/vaultwarden"
-USER="vaultwarden"
-SERVICE_FILE="/etc/systemd/system/vaultwarden.service"
-PORT_HTTP="8080"  # Puerto HTTP para Vaultwarden
-PORT_HTTPS="8443" # Puerto HTTPS para Vaultwarden
+EOF
 
-# Check if running as root
-if [ "$(id -u)" -ne 0 ]; then
-    echo "❌ This script must be run as root."
-    exit 1
+cat << EOF
+Open source password management solutions
+Copyright 2015-$(date +'%Y'), 8bit Solutions LLC
+https://bitwarden.com, https://github.com/bitwarden
+
+===================================================
+
+EOF
+
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+if [ "$EUID" -eq 0 ]; then
+    echo -e "${RED}WARNING: This script is running as the root user!"
+    echo -e "If you are running a standard deployment this script should be running as a dedicated Bitwarden User as per the documentation.${NC}"
+    read -p "Do you still want to continue? (y/n): " choice
+
+    # Check the user's choice
+    case "$choice" in
+        [Yy]|[Yy][Ee][Ss])
+            echo -e "Continuing...."
+            ;;
+        *)
+            exit 1
+            ;;
+    esac
 fi
 
-echo "🔄 Updating system packages..."
-apt update && apt upgrade -y
-
-echo "🛠️ Installing required dependencies..."
-apt install -y unzip curl sqlite3 sudo certbot python3-certbot ufw
-
-echo "👤 Creating user and directory for Vaultwarden..."
-id "$USER" &>/dev/null || useradd -r -m -U -d "$INSTALL_DIR" -s /usr/sbin/nologin "$USER"
-mkdir -p "$INSTALL_DIR/data"
-chown -R "$USER:$USER" "$INSTALL_DIR"
-
-echo "📥 Downloading Vaultwarden..."
-cd "$INSTALL_DIR"
-wget -q https://github.com/dani-garcia/vaultwarden/releases/latest/download/vaultwarden-linux-amd64.tar.gz
-tar -xzf vaultwarden-linux-amd64.tar.gz
-rm vaultwarden-linux-amd64.tar.gz
-chown "$USER:$USER" "$INSTALL_DIR/vaultwarden"
-
-echo "⚙️ Configuring Vaultwarden..."
-cat <<EOF > "$INSTALL_DIR/.env"
-DATA_FOLDER=$INSTALL_DIR/data
-WEBSOCKET_ENABLED=true
-LOG_FILE=$INSTALL_DIR/vaultwarden.log
-ROCKET_PORT=$PORT_HTTP
-EOF
-chmod 640 "$INSTALL_DIR/.env"
-chown "$USER:$USER" "$INSTALL_DIR/.env"
-
-echo "📝 Creating systemd service..."
-cat <<EOF > "$SERVICE_FILE"
-[Unit]
-Description=Vaultwarden (Bitwarden alternative)
-After=network.target
-
-[Service]
-User=$USER
-Group=$USER
-WorkingDirectory=$INSTALL_DIR
-ExecStart=$INSTALL_DIR/vaultwarden
-Restart=always
-LimitNOFILE=1024
-AmbientCapabilities=CAP_NET_BIND_SERVICE
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-echo "🔄 Reloading systemd and enabling the service..."
-systemctl daemon-reload
-systemctl enable --now vaultwarden
 
 
-echo "✅ Vaultwarden is installed and running on port $PORT_HTTP."
-echo "🚀 Access it via: http://your-server:$PORT_HTTP"
+# Setup
 
-# Ask if the user wants to install HTTPS with Certbot
-read -p "Would you like to configure HTTPS with Certbot? (y/n): " install_https
-if [[ "$install_https" =~ ^[Yy]$ ]]; then
-    read -p "Enter your domain (e.g., example.com): " domain
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SCRIPT_NAME=$(basename "$0")
+SCRIPT_PATH="$DIR/$SCRIPT_NAME"
+OUTPUT="$DIR/bwdata"
+if [ $# -eq 2 ]
+then
+    OUTPUT=$2
+fi
 
-    echo "📌 Stopping Vaultwarden to free up port 80 for Certbot..."
-    systemctl stop vaultwarden
+# Check and install Docker if not found
+if ! command -v docker &> /dev/null; then
+    echo "Docker not found. Installing Docker..."
+    curl -fsSL https://get.docker.com | bash
+    systemctl start docker
+    systemctl enable docker
+fi
 
-    certbot certonly --standalone -d "$domain" --non-interactive --agree-tos -m admin@$domain
+# Check and install Docker Compose if not found
+if ! docker compose &> /dev/null && ! command -v docker-compose &> /dev/null; then
+    echo "Docker Compose not found. Installing Docker Compose..."
+    curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    chmod +x /usr/local/bin/docker-compose
+    ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+fi
 
-    echo "🔐 Configuring Vaultwarden to use HTTPS on port $PORT_HTTPS..."
-    cat <<EOF >> "$INSTALL_DIR/.env"
-ROCKET_TLS={certs="$INSTALL_DIR/fullchain.pem",key="$INSTALL_DIR/privkey.pem"}
-ROCKET_PORT=$PORT_HTTPS
-EOF
+# Determine the correct docker-compose command
+dccmd='docker compose'
+if ! docker compose &> /dev/null; then
+    dccmd='docker-compose'
+fi
 
-    ln -sf /etc/letsencrypt/live/$domain/fullchain.pem "$INSTALL_DIR/fullchain.pem"
-    ln -sf /etc/letsencrypt/live/$domain/privkey.pem "$INSTALL_DIR/privkey.pem"
+SCRIPTS_DIR="$OUTPUT/scripts"
+BITWARDEN_SCRIPT_URL="https://func.bitwarden.com/api/dl/?app=self-host&platform=linux"
+RUN_SCRIPT_URL="https://func.bitwarden.com/api/dl/?app=self-host&platform=linux&variant=run"
 
-    echo "🔄 Restarting Vaultwarden with HTTPS enabled..."
-    systemctl start vaultwarden
+# Please do not create pull requests modifying the version numbers.
+COREVERSION="2025.2.3"
+WEBVERSION="2025.2.2"
+KEYCONNECTORVERSION="2024.8.0"
 
-    echo "✅ HTTPS is now enabled. Access Vaultwarden via: https://$domain:$PORT_HTTPS"
+echo "bitwarden.sh version $COREVERSION"
+docker --version
+if [[ "$dccmd" == "docker compose" ]]; then
+    $dccmd version
 else
-    echo "⚠️ HTTPS was not configured. Your Vaultwarden instance is only accessible via HTTP on port $PORT_HTTP."
+    $dccmd --version
 fi
 
-echo "🎉 Installation completed successfully!"
+echo ""
 
+# Functions
+
+function downloadSelf() {
+    if curl -L -s -w "http_code %{http_code}" -o $SCRIPT_PATH.1 $BITWARDEN_SCRIPT_URL | grep -q "^http_code 20[0-9]"
+    then
+        mv -f $SCRIPT_PATH.1 $SCRIPT_PATH
+        chmod u+x $SCRIPT_PATH
+    else
+        rm -f $SCRIPT_PATH.1
+    fi
 }
+
+function downloadRunFile() {
+    if [ ! -d "$SCRIPTS_DIR" ]
+    then
+        mkdir $SCRIPTS_DIR
+    fi
+
+    local tmp_script=$(mktemp)
+
+    run_file_status_code=$(curl -s -L -w "%{http_code}" -o $tmp_script $RUN_SCRIPT_URL)
+    if echo "$run_file_status_code" | grep -q "^20[0-9]"
+    then
+        mv $tmp_script $SCRIPTS_DIR/run.sh
+        chmod u+x $SCRIPTS_DIR/run.sh
+        rm -f $SCRIPTS_DIR/install.sh
+    else
+        echo "Unable to download run script from $RUN_SCRIPT_URL. Received status code: $run_file_status_code"
+        echo "http response:"
+        cat $tmp_script
+        rm -f $tmp_script
+        exit 1
+    fi
+}
+
+function checkOutputDirExists() {
+    if [ ! -d "$OUTPUT" ]
+    then
+        echo "Cannot find a Bitwarden installation at $OUTPUT."
+        exit 1
+    fi
+}
+
+function checkOutputDirNotExists() {
+    if [ -d "$OUTPUT/docker" ]
+    then
+        echo "Looks like Bitwarden is already installed at $OUTPUT."
+        exit 1
+    fi
+}
+
+function compressLogs() {
+    LOG_DIR=${1#$(pwd)/}/logs
+    START_DATE=$2
+    END_DATE=$3
+    tempfile=$(mktemp)
+
+    function validateDateFormat() {
+        if ! [[ $1 =~ ^[0-9]{8}$ ]]; then
+            echo "Error: $2 date format is invalid. Please use YYYYMMDD."
+            exit 1
+        fi
+    }
+
+    function validateDateOrder() {
+        if [[ $(date -d "$1" +%s) > $(date -d "$2" +%s) ]]; then
+            echo "Error: start date ($1) must be earlier than end date ($2)."
+            exit 1
+        fi
+    }
+
+    # Validate start date format
+    if [ -n "$START_DATE" ]; then
+        validateDateFormat "$START_DATE" "start"
+        if [ -z "$END_DATE" ]; then
+            echo "Error: an end date is required when an start date is provided."
+            exit 1
+        fi
+    fi
+
+    # Validate end date format and order
+    if [ -n "$END_DATE" ]; then
+        validateDateFormat "$END_DATE" "end"
+        validateDateOrder "$START_DATE" "$END_DATE"
+    fi
+
+    if [ -n "$START_DATE" ] && [ -n "$END_DATE" ]; then
+
+        OUTPUT_FILE="bitwarden-logs-${START_DATE}-to-${END_DATE}.tar.gz"
+
+        if [[ "$START_DATE" == "$END_DATE" ]]; then
+            OUTPUT_FILE="bitwarden-logs-${START_DATE}.tar.gz"
+        fi
+
+        for d in $(seq $(date -d "$START_DATE" "+%Y%m%d") $(date -d "$END_DATE" "+%Y%m%d")); do
+            # Find and list files matching the date in the filename and modification time, append to tempfile
+            find $LOG_DIR \( -type f -name "*$d*.txt" -o -name "*.log" -newermt "$START_DATE" ! -newermt "$END_DATE" \) -exec bash -c 'echo "${1#./}" >> "$2"' _ {} "$tempfile" \;
+        done
+
+        echo "Compressing logs from $START_DATE to $END_DATE ..."
+    else
+        OUTPUT_FILE="bitwarden-logs-all.tar.gz"
+        find $LOG_DIR -type f -exec bash -c 'echo "${1#./}" >> "$2"' bash {} "$tempfile" \;
+        echo "Compressing all logs..."
+    fi
+
+    tar -czvf "$OUTPUT_FILE" -T "$tempfile"
+    echo "Logs compressed into $(pwd $OUTPUT_FILE)/$OUTPUT_FILE"
+    rm $tempfile
+}
+
+function listCommands() {
+cat << EOT
+Available commands:
+
+install
+start
+restart
+stop
+update
+updatedb
+updaterun
+updateself
+updateconf
+uninstall
+renewcert
+rebuild
+compresslogs
+help
+
+See more at https://bitwarden.com/help/article/install-on-premise/#script-commands-reference
+
+EOT
+}
+
+# Commands
+
+case $1 in
+    "install")
+        checkOutputDirNotExists
+        mkdir -p $OUTPUT
+        downloadRunFile
+        $SCRIPTS_DIR/run.sh install $OUTPUT $COREVERSION $WEBVERSION $KEYCONNECTORVERSION
+        ;;
+    "start" | "restart")
+        checkOutputDirExists
+        $SCRIPTS_DIR/run.sh restart $OUTPUT $COREVERSION $WEBVERSION $KEYCONNECTORVERSION
+        ;;
+    "update")
+        checkOutputDirExists
+        downloadRunFile
+        $SCRIPTS_DIR/run.sh update $OUTPUT $COREVERSION $WEBVERSION $KEYCONNECTORVERSION
+        ;;
+    "rebuild")
+        checkOutputDirExists
+        $SCRIPTS_DIR/run.sh rebuild $OUTPUT $COREVERSION $WEBVERSION $KEYCONNECTORVERSION
+        ;;
+    "updateconf")
+        checkOutputDirExists
+        $SCRIPTS_DIR/run.sh updateconf $OUTPUT $COREVERSION $WEBVERSION $KEYCONNECTORVERSION
+        ;;
+    "updatedb")
+        checkOutputDirExists
+        $SCRIPTS_DIR/run.sh updatedb $OUTPUT $COREVERSION $WEBVERSION $KEYCONNECTORVERSION
+        ;;
+    "stop")
+        checkOutputDirExists
+        $SCRIPTS_DIR/run.sh stop $OUTPUT $COREVERSION $WEBVERSION $KEYCONNECTORVERSION
+        ;;
+    "renewcert")
+        checkOutputDirExists
+        $SCRIPTS_DIR/run.sh renewcert $OUTPUT $COREVERSION $WEBVERSION $KEYCONNECTORVERSION
+        ;;
+    "updaterun")
+        checkOutputDirExists
+        downloadRunFile
+        ;;
+    "updateself")
+        downloadSelf && echo "Updated self." && exit
+        ;;
+    "uninstall")
+        checkOutputDirExists
+        $SCRIPTS_DIR/run.sh uninstall $OUTPUT
+        ;;
+    "compresslogs")
+        checkOutputDirExists
+        compressLogs $OUTPUT $2 $3
+        ;;
+    "help")
+        listCommands
+        ;;
+    *)
+        echo "No command found."
+        echo
+        listCommands
+esac
+}
+
 configure_prometheus () {
 
 
