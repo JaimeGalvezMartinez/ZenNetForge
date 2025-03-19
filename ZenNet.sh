@@ -800,7 +800,7 @@ esac
 
 echo "$(date +"%Y-%m-%d %H:%M:%S") - Process completed." | tee -a "$LOG_FILE"
 
-
+}
 
 # Install and configure SFTP Server
 
