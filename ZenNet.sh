@@ -1788,7 +1788,7 @@ while true; do
   	16) show_system_info ;;
    	17) configure_acl ;;
         18) manage_certbot ;;
-	19} backup_or_restore_backup_from_ssh_server ;;
+	19) backup_or_restore_backup_from_ssh_server ;;
         20) echo "Exiting. Goodbye!"; break ;;
         *) echo "Invalid option." ;;
     esac
