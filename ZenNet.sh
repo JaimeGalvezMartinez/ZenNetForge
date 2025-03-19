@@ -673,100 +673,114 @@ echo "==========================================================================
 backup_or_restore_backup_from_ssh_server() {
 
 
-
 # Log file
 LOG_FILE="$HOME/backup.log"
 
 # Function to create a backup
 backup() {
-    read -p "Enter the directory to back up: " BACKUP_DIR
-    read -p "Enter the local folder to store the backup (If it doesn't exist, it will be created automatically): " DEST_DIR
+    read -r -p "Enter the directory to back up: " BACKUP_DIR
+    read -r -p "Enter the local folder to store the backup (If it doesn't exist, it will be created automatically): " DEST_DIR
 
-    # Check if the directory to back up exists
     if [ ! -d "$BACKUP_DIR" ]; then
         echo "Error: The directory '$BACKUP_DIR' does not exist."
         exit 1
     fi
 
-    # Create backup folder if it doesn't exist
     mkdir -p "$DEST_DIR"
 
-    # Generate filename with timestamp
     BACKUP_FILE="$DEST_DIR/backup_$(date +'%Y%m%d_%H%M%S').tar.xz"
 
-    echo "$(date) - Starting backup..." | tee -a "$LOG_FILE"
+    echo "$(date +"%Y-%m-%d %H:%M:%S") - Starting backup..." | tee -a "$LOG_FILE"
     tar -cJf "$BACKUP_FILE" "$BACKUP_DIR"
 
     if [ $? -eq 0 ]; then
-        echo "$(date) - Backup created: $BACKUP_FILE" | tee -a "$LOG_FILE"
+        echo "$(date +"%Y-%m-%d %H:%M:%S") - Backup created: $BACKUP_FILE" | tee -a "$LOG_FILE"
     else
-        echo "$(date) - Error creating the backup" | tee -a "$LOG_FILE"
+        echo "$(date +"%Y-%m-%d %H:%M:%S") - Error creating the backup" | tee -a "$LOG_FILE"
         exit 1
     fi
 
-    # Ask if the user wants to send the backup to a remote server
-    read -p "Do you want to send the backup to a remote server? (y/n): " RESPONSE
-
+    read -r -p "Do you want to send the backup to a remote server? (y/n): " RESPONSE
     if [[ "$RESPONSE" =~ ^[Yy]$ ]]; then
-        read -p "Enter the remote server user: " REMOTE_USER
-        read -p "Enter the remote server IP or domain: " REMOTE_HOST
-        read -p "Enter the SSH port (Default is 22): " REMOTE_PORT
-        read -p "Enter the path on the remote server to store the backup: " REMOTE_PATH
+        send_to_remote "$BACKUP_FILE"
+    fi
+}
 
-        REMOTE_PORT=${REMOTE_PORT:-22}
+# Function to send a file to a remote server
+send_to_remote() {
+    FILE_TO_SEND="$1"
+    read -r -p "Enter the remote server user: " REMOTE_USER
+    read -r -p "Enter the remote server IP or domain: " REMOTE_HOST
+    read -r -p "Enter the SSH port (Default is 22): " REMOTE_PORT
+    read -r -p "Enter the path on the remote server to store the file: " REMOTE_PATH
+    
+    REMOTE_PORT=${REMOTE_PORT:-22}
+    
+    echo "$(date +"%Y-%m-%d %H:%M:%S") - Checking connection to $REMOTE_HOST on port $REMOTE_PORT..." | tee -a "$LOG_FILE"
+    if ! nc -z "$REMOTE_HOST" "$REMOTE_PORT"; then
+        echo "$(date +"%Y-%m-%d %H:%M:%S") - Error: Could not connect to $REMOTE_HOST on port $REMOTE_PORT." | tee -a "$LOG_FILE"
+        exit 1
+    fi
 
-        echo "$(date) - Checking connection to $REMOTE_HOST on port $REMOTE_PORT..." | tee -a "$LOG_FILE"
-        if ! nc -z "$REMOTE_HOST" "$REMOTE_PORT"; then
-            echo "$(date) - Error: Could not connect to $REMOTE_HOST on port $REMOTE_PORT." | tee -a "$LOG_FILE"
-            exit 1
-        fi
-
-        echo "$(date) - Sending backup to $REMOTE_HOST..." | tee -a "$LOG_FILE"
-        scp -P "$REMOTE_PORT" "$BACKUP_FILE" "$REMOTE_USER@$REMOTE_HOST:$REMOTE_PATH"
-
-        if [ $? -eq 0 ]; then
-            echo "$(date) - Backup successfully sent" | tee -a "$LOG_FILE"
-        else
-            echo "$(date) - Error sending the backup" | tee -a "$LOG_FILE"
-        fi
+    echo "$(date +"%Y-%m-%d %H:%M:%S") - Sending file to $REMOTE_HOST..." | tee -a "$LOG_FILE"
+    scp -P "$REMOTE_PORT" "$FILE_TO_SEND" "$REMOTE_USER@$REMOTE_HOST:$REMOTE_PATH"
+    
+    if [ $? -eq 0 ]; then
+        echo "$(date +"%Y-%m-%d %H:%M:%S") - File successfully sent" | tee -a "$LOG_FILE"
+    else
+        echo "$(date +"%Y-%m-%d %H:%M:%S") - Error sending the file" | tee -a "$LOG_FILE"
     fi
 }
 
 # Function to restore a backup from a remote server
-
 restore_backup() {
-    read -p "Enter the remote server user: " REMOTE_USER
-    read -p "Enter the remote server IP or domain: " REMOTE_HOST
-    read -p "Enter the SSH port (Default is 22): " REMOTE_PORT
-    read -p "Enter the path of the backup file on the remote server: " REMOTE_FILE
-    read -p "Enter the folder where the backup should be restored: " RESTORE_DIR
+    read -r -p "Enter the remote server user: " REMOTE_USER
+    read -r -p "Enter the remote server IP or domain: " REMOTE_HOST
+    read -r -p "Enter the SSH port (Default is 22): " REMOTE_PORT
+    read -r -p "Enter the path of the backup file on the remote server: " REMOTE_FILE
+    read -r -p "Enter the folder where the backup should be restored: " RESTORE_DIR
 
     REMOTE_PORT=${REMOTE_PORT:-22}
-
-    echo "$(date) - Checking connection to $REMOTE_HOST on port $REMOTE_PORT..." | tee -a "$LOG_FILE"
-    if ! nc -z "$REMOTE_HOST" "$REMOTE_PORT"; then
-        echo "$(date) - Error: Could not connect to $REMOTE_HOST on port $REMOTE_PORT." | tee -a "$LOG_FILE"
-        exit 1
-    fi
-
-    echo "$(date) - Downloading backup from $REMOTE_HOST..." | tee -a "$LOG_FILE"
+    
+    echo "$(date +"%Y-%m-%d %H:%M:%S") - Downloading backup from $REMOTE_HOST..." | tee -a "$LOG_FILE"
     scp -P "$REMOTE_PORT" "$REMOTE_USER@$REMOTE_HOST:$REMOTE_FILE" "$HOME"
-
+    
     if [ $? -eq 0 ]; then
         BACKUP_FILENAME=$(basename "$REMOTE_FILE")
-        echo "$(date) - Backup successfully downloaded: $HOME/$BACKUP_FILENAME" | tee -a "$LOG_FILE"
+        echo "$(date +"%Y-%m-%d %H:%M:%S") - Backup successfully downloaded: $HOME/$BACKUP_FILENAME" | tee -a "$LOG_FILE"
 
-        echo "$(date) - Restoring backup to $RESTORE_DIR..." | tee -a "$LOG_FILE"
+        echo "$(date +"%Y-%m-%d %H:%M:%S") - Restoring backup to $RESTORE_DIR..." | tee -a "$LOG_FILE"
         mkdir -p "$RESTORE_DIR"
         tar -xJf "$HOME/$BACKUP_FILENAME" -C "$RESTORE_DIR"
 
         if [ $? -eq 0 ]; then
-            echo "$(date) - Restoration completed in $RESTORE_DIR" | tee -a "$LOG_FILE"
+            echo "$(date +"%Y-%m-%d %H:%M:%S") - Restoration completed in $RESTORE_DIR" | tee -a "$LOG_FILE"
         else
-            echo "$(date) - Error restoring the backup" | tee -a "$LOG_FILE"
+            echo "$(date +"%Y-%m-%d %H:%M:%S") - Error restoring the backup" | tee -a "$LOG_FILE"
         fi
     else
-        echo "$(date) - Error downloading the backup" | tee -a "$LOG_FILE"
+        echo "$(date +"%Y-%m-%d %H:%M:%S") - Error downloading the backup" | tee -a "$LOG_FILE"
+    fi
+}
+
+# Function to download a file from a remote server
+download_file() {
+    read -r -p "Enter the remote server user: " REMOTE_USER
+    read -r -p "Enter the remote server IP or domain: " REMOTE_HOST
+    read -r -p "Enter the SSH port (Default is 22): " REMOTE_PORT
+    read -r -p "Enter the path of the file on the remote server: " REMOTE_FILE
+    read -r -p "Enter the local folder to save the file: " LOCAL_DIR
+    
+    REMOTE_PORT=${REMOTE_PORT:-22}
+    mkdir -p "$LOCAL_DIR"
+    
+    echo "$(date +"%Y-%m-%d %H:%M:%S") - Downloading file from $REMOTE_HOST..." | tee -a "$LOG_FILE"
+    scp -P "$REMOTE_PORT" "$REMOTE_USER@$REMOTE_HOST:$REMOTE_FILE" "$LOCAL_DIR"
+    
+    if [ $? -eq 0 ]; then
+        echo "$(date +"%Y-%m-%d %H:%M:%S") - File successfully downloaded to $LOCAL_DIR" | tee -a "$LOG_FILE"
+    else
+        echo "$(date +"%Y-%m-%d %H:%M:%S") - Error downloading the file" | tee -a "$LOG_FILE"
     fi
 }
 
@@ -774,17 +788,19 @@ restore_backup() {
 echo "Select an option:"
 echo "1) Create a backup"
 echo "2) Restore a backup"
-read -p "Enter the option number: " OPTION
+echo "3) Download a file from a remote server"
+read -r -p "Enter the option number: " OPTION
 
 case $OPTION in
     1) backup ;;
     2) restore_backup ;;
+    3) download_file ;;
     *) echo "Invalid option. Exiting..." ;;
 esac
 
-echo "$(date) - Process completed." | tee -a "$LOG_FILE"
+echo "$(date +"%Y-%m-%d %H:%M:%S") - Process completed." | tee -a "$LOG_FILE"
 
-}
+
 
 # Install and configure SFTP Server
 
