@@ -669,6 +669,123 @@ echo "======= The shared folder '$carpeta_compartida' has been shared correctly.
 echo "============= Shared Folder: //$HOSTNAME/$carpeta_compartida ========================"
 echo "====================================================================================="
 }
+
+backup_or_restore_backup_from_ssh_server() {
+
+
+
+# Log file
+LOG_FILE="$HOME/backup.log"
+
+# Function to create a backup
+backup() {
+    read -p "Enter the directory to back up: " BACKUP_DIR
+    read -p "Enter the local folder to store the backup (If it doesn't exist, it will be created automatically): " DEST_DIR
+
+    # Check if the directory to back up exists
+    if [ ! -d "$BACKUP_DIR" ]; then
+        echo "Error: The directory '$BACKUP_DIR' does not exist."
+        exit 1
+    fi
+
+    # Create backup folder if it doesn't exist
+    mkdir -p "$DEST_DIR"
+
+    # Generate filename with timestamp
+    BACKUP_FILE="$DEST_DIR/backup_$(date +'%Y%m%d_%H%M%S').tar.xz"
+
+    echo "$(date) - Starting backup..." | tee -a "$LOG_FILE"
+    tar -cJf "$BACKUP_FILE" "$BACKUP_DIR"
+
+    if [ $? -eq 0 ]; then
+        echo "$(date) - Backup created: $BACKUP_FILE" | tee -a "$LOG_FILE"
+    else
+        echo "$(date) - Error creating the backup" | tee -a "$LOG_FILE"
+        exit 1
+    fi
+
+    # Ask if the user wants to send the backup to a remote server
+    read -p "Do you want to send the backup to a remote server? (y/n): " RESPONSE
+
+    if [[ "$RESPONSE" =~ ^[Yy]$ ]]; then
+        read -p "Enter the remote server user: " REMOTE_USER
+        read -p "Enter the remote server IP or domain: " REMOTE_HOST
+        read -p "Enter the SSH port (Default is 22): " REMOTE_PORT
+        read -p "Enter the path on the remote server to store the backup: " REMOTE_PATH
+
+        REMOTE_PORT=${REMOTE_PORT:-22}
+
+        echo "$(date) - Checking connection to $REMOTE_HOST on port $REMOTE_PORT..." | tee -a "$LOG_FILE"
+        if ! nc -z "$REMOTE_HOST" "$REMOTE_PORT"; then
+            echo "$(date) - Error: Could not connect to $REMOTE_HOST on port $REMOTE_PORT." | tee -a "$LOG_FILE"
+            exit 1
+        fi
+
+        echo "$(date) - Sending backup to $REMOTE_HOST..." | tee -a "$LOG_FILE"
+        scp -P "$REMOTE_PORT" "$BACKUP_FILE" "$REMOTE_USER@$REMOTE_HOST:$REMOTE_PATH"
+
+        if [ $? -eq 0 ]; then
+            echo "$(date) - Backup successfully sent" | tee -a "$LOG_FILE"
+        else
+            echo "$(date) - Error sending the backup" | tee -a "$LOG_FILE"
+        fi
+    fi
+}
+
+# Function to restore a backup from a remote server
+
+restore_backup() {
+    read -p "Enter the remote server user: " REMOTE_USER
+    read -p "Enter the remote server IP or domain: " REMOTE_HOST
+    read -p "Enter the SSH port (Default is 22): " REMOTE_PORT
+    read -p "Enter the path of the backup file on the remote server: " REMOTE_FILE
+    read -p "Enter the folder where the backup should be restored: " RESTORE_DIR
+
+    REMOTE_PORT=${REMOTE_PORT:-22}
+
+    echo "$(date) - Checking connection to $REMOTE_HOST on port $REMOTE_PORT..." | tee -a "$LOG_FILE"
+    if ! nc -z "$REMOTE_HOST" "$REMOTE_PORT"; then
+        echo "$(date) - Error: Could not connect to $REMOTE_HOST on port $REMOTE_PORT." | tee -a "$LOG_FILE"
+        exit 1
+    fi
+
+    echo "$(date) - Downloading backup from $REMOTE_HOST..." | tee -a "$LOG_FILE"
+    scp -P "$REMOTE_PORT" "$REMOTE_USER@$REMOTE_HOST:$REMOTE_FILE" "$HOME"
+
+    if [ $? -eq 0 ]; then
+        BACKUP_FILENAME=$(basename "$REMOTE_FILE")
+        echo "$(date) - Backup successfully downloaded: $HOME/$BACKUP_FILENAME" | tee -a "$LOG_FILE"
+
+        echo "$(date) - Restoring backup to $RESTORE_DIR..." | tee -a "$LOG_FILE"
+        mkdir -p "$RESTORE_DIR"
+        tar -xJf "$HOME/$BACKUP_FILENAME" -C "$RESTORE_DIR"
+
+        if [ $? -eq 0 ]; then
+            echo "$(date) - Restoration completed in $RESTORE_DIR" | tee -a "$LOG_FILE"
+        else
+            echo "$(date) - Error restoring the backup" | tee -a "$LOG_FILE"
+        fi
+    else
+        echo "$(date) - Error downloading the backup" | tee -a "$LOG_FILE"
+    fi
+}
+
+# Main menu
+echo "Select an option:"
+echo "1) Create a backup"
+echo "2) Restore a backup"
+read -p "Enter the option number: " OPTION
+
+case $OPTION in
+    1) backup ;;
+    2) restore_backup ;;
+    *) echo "Invalid option. Exiting..." ;;
+esac
+
+echo "$(date) - Process completed." | tee -a "$LOG_FILE"
+
+}
+
 # Install and configure SFTP Server
 
 install_ftp_server_over_ssh() {
@@ -1647,7 +1764,8 @@ while true; do
     echo "16) Show system Informaton "
     echo "17) Configure ACL "
     echo "18) Cerbot Management "
-    echo "19) Exit"
+    echo "19) Make Backup or restore backup from ssh server "
+    echo "20) Exit"
     read -p "Choose an option: " opcion
 
     # case for execute the fuctions
@@ -1670,7 +1788,8 @@ while true; do
   	16) show_system_info ;;
    	17) configure_acl ;;
         18) manage_certbot ;;
-        19) echo "Exiting. Goodbye!"; break ;;
+	19} backup_or_restore_backup_from_ssh_server ;;
+        20) echo "Exiting. Goodbye!"; break ;;
         *) echo "Invalid option." ;;
     esac
 done
