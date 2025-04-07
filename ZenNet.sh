@@ -3,8 +3,7 @@
 #!/bin/bash
 # Version 2.0 - March 2025
 # Developer: Jaime Galvez (TheHellishPandaa)
-# Description: Bash script for configuring gateway server, DHCP, SAMBA, OpenSSH, etc.
-# This Script is released under GNU General public license.
+# Description: Bash script for configuring g-at-lic license.
 # If you like my work, please support it with a start in my github´s profile
 
 clear
