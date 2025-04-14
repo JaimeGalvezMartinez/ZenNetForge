@@ -77,7 +77,7 @@ configure_firewall() {
                 echo "Disabling firewall..."
                 sudo ufw disable
                 ;;
-            7)  # Salir
+            7)  # Exit
                 echo "Exiting firewall configuration."
                 break
                 ;;
@@ -114,10 +114,13 @@ options {
     allow-recursion { any; };
     
     forwarders {
+    	9.9.9.9;  // Quad9 DNS
         8.8.8.8;  // Google DNS
         8.8.4.4;  // Google Secondary DNS
         1.1.1.1;  // Cloudflare DNS
         1.0.0.1;  // Cloudflare Secondary DNS
+	8.26.56.26; // Comodo Secure DNS
+ 	
     };
     
     dnssec-validation auto;
