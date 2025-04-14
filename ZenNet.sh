@@ -1769,8 +1769,6 @@ echo "-----------------------------------"
 update_php () {
 
 
-#!/bin/bash
-
 echo "=== Update PHP 7.4 to PHP 8.1 on Ubuntu ==="
 
 # Paso 1: Add repository de Ondřej Surý
