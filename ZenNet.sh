@@ -1807,7 +1807,8 @@ fi
 echo "[4/6] Verify PHP version..."
 php -v
 
-echo "[5/6] Clean old packages
+echo echo "[5/6] Clean old packages"
+
 sudo apt autoremove -y
 
 echo "[6/6] PHP 8.1 installed "
