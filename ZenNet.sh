@@ -885,85 +885,101 @@ echo "--------------------------------------------------------------------------
 
 nextcloud_install(){
 
-    echo "==========================================================="
-    echo "                   Nextcloud Installation                  "
-    echo "==========================================================="
-    echo ""
+# Interactive menu for capturing values
 
-    # Check if the user is root
-    if [[ $EUID -ne 0 ]]; then
-        echo "This script must be run as root." 
-        exit 1
-    fi
+echo "==========================================================="
+echo "============= Nextcloud Installation ======================"
+echo "==========================================================="
+echo "==========================================================="
+echo "================== by TheHellishPandaa  ==================="
+echo "================ GitHub: TheHellishPandaa ================="
+echo "==========================================================="
+echo ""
+# Check if the user is root
+if [[ $EUID -ne 0 ]]; then
+    echo "This script must be run as root." 
+    exit 1
+fi
 
-    # Prompt for configuration values
-    read -p "Enter the database user name (default: root): " DB_USER
-    DB_USER=${DB_USER:-"root"}
+# Prompt for Nextcloud version
+read -p "Which version of Nextcloud would you like to install? (Default: 28.0.0): " NEXTCLOUD_VERSION
+NEXTCLOUD_VERSION=${NEXTCLOUD_VERSION:-"28.0.0"}  # Default version if user inputs nothing
 
-    read -p "Enter the database name (default: nextcloud_db): " DB_NAME
-    DB_NAME=${DB_NAME:-"nextcloud_db"}
+# Prompt for database name
+read -p "Enter the database name (default: nextcloud_db): " DB_NAME
+DB_NAME=${DB_NAME:-"nextcloud_db"}
 
-    read -sp "Enter the password for the database user: " DB_PASSWORD
-    echo
+# Prompt for database user
+read -p "Enter the database user name (default: nextcloud_user): " DB_USER
+DB_USER=${DB_USER:-"nextcloud_user"}
 
-    read -p "Enter the Nextcloud installation path (default: /var/www/html/nextcloud): " NEXTCLOUD_PATH
-    NEXTCLOUD_PATH=${NEXTCLOUD_PATH:-"/var/www/html/nextcloud"}
+# Prompt for database password
+read -sp "Enter the password for the database user: " DB_PASSWORD
+echo
 
-    read -p "Enter the directory where Nextcloud will store data (default: /var/nextcloud/data): " DATA_DIRECTORY
-    DATA_DIRECTORY=${DATA_DIRECTORY:-"/var/nextcloud/data"}
+# Prompt for Nextcloud installation path
+read -p "Enter the Nextcloud installation path (default: /var/www/html/nextcloud): " NEXTCLOUD_PATH
+NEXTCLOUD_PATH=${NEXTCLOUD_PATH:-"/var/www/html/nextcloud"}
 
-    read -p "Enter the domain or IP to access Nextcloud: " DOMAIN
+# Promt Nextcloud Data Directory
+ read -p "Enter the directory where Nextcloud will store data (default: /var/nextcloud/data): " DATA_DIRECTORY
+ DATA_DIRECTORY=${DATA_DIRECTORY:-"/var/nextcloud/data"}
 
-    # Confirm installation
-    echo -e "\n========================================================"
-    echo -e "============ Configuration Summary: ===================="
-    echo -e "========================================================\n"
-    echo "Database: $DB_NAME"
-    echo "Database User: $DB_USER"
-    echo "Installation Path: $NEXTCLOUD_PATH"
-    echo "Data Directory: $DATA_DIRECTORY"
-    echo "Domain or IP: $DOMAIN"
-    read -p "Do you want to proceed with the installation? (y/n): " CONFIRM
-    echo
-    if [[ "$CONFIRM" != [yY] ]]; then
-        echo "Installation canceled."
-        exit 1
-    fi
+# Prompt for domain or IP
+read -p "Enter the domain or IP to access Nextcloud: " DOMAIN
 
-    # Update system packages
-    echo "Updating system..."
-    apt update && apt upgrade -y
+# Configuration confirmation
+echo -e ""
+echo -e "========================================================"
+echo -e "============ Configuration Summary: ===================="
+echo -e "========================================================"
+echo -e ""
 
-    # Install required software
-    echo "Installing Apache, MariaDB, PHP, and required dependencies..."
-    apt install -y apache2 mariadb-server php php-cli php-fpm php-gd php-json php-mbstring php-curl php-xml php-zip php-mysql php-intl php-bz2 php-imagick libapache2-mod-php unzip wget lbzip2
+echo "Nextcloud Version: $NEXTCLOUD_VERSION"
+echo "Database: $DB_NAME"
+echo "Database User: $DB_USER"
+echo "Installation Path: $NEXTCLOUD_PATH"
+echo "Data Directory: $DATA_DIRECTORY"
+echo "Domain or IP: $DOMAIN"
+echo -e "Do you want to proceed with the installation? (y/n): "
 
-    # Configure MariaDB
-    echo "Configuring MariaDB..."
-    mysql -u root -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-    mysql -u root -e "CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';"
-    mysql -u root -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';"
-    mysql -u root -e "FLUSH PRIVILEGES;"
+# Confirmation to proceed with the installation
+read -n 1 CONFIRM
+echo
+if [[ "$CONFIRM" != [yY] ]]; then
+    echo "Installation canceled."
+    exit 1
+fi
 
-    # Configure PHP
-    echo "Configuring PHP..."
-    PHP_INI_PATH=$(php -r "echo php_ini_loaded_file();")
-    if [[ -f "$PHP_INI_PATH" ]]; then
-        sed -i "s/memory_limit = .*/memory_limit = 512M/" "$PHP_INI_PATH"
-        sed -i "s/upload_max_filesize = .*/upload_max_filesize = 512M/" "$PHP_INI_PATH"
-        sed -i "s/post_max_size = .*/post_max_size = 512M/" "$PHP_INI_PATH"
-        sed -i "s/max_execution_time = .*/max_execution_time = 300/" "$PHP_INI_PATH"
-    fi
+# Rest of the script for Nextcloud installation
+# Update and upgrade packages
+echo "========================================================"
+echo "=============== Updating system... ====================="
+echo "========================================================"
+apt update && apt upgrade -y
 
-    # Download and configure Nextcloud
-    echo "Downloading the latest version of Nextcloud..."
-    wget https://download.nextcloud.com/server/releases/latest.tar.bz2 -O nextcloud.tar.bz2
-    tar -xf nextcloud.tar.bz2
-    mv nextcloud "$NEXTCLOUD_PATH"
-    chown -R www-data:www-data "$NEXTCLOUD_PATH"
-    chmod -R 755 "$NEXTCLOUD_PATH"
+# Install Apache
+echo "Installing Apache..."
+apt install apache2 -y
+ufw allow 'Apache Full'
 
-    # Create Data Directory
+# Install MariaDB
+echo "Installing MariaDB..."
+apt install mariadb-server -y
+mysql_secure_installation
+
+# Create database and user for Nextcloud
+echo "Configuring database for Nextcloud..."
+mysql -u root -e "CREATE DATABASE ${DB_NAME};"
+mysql -u root -e "CREATE USER '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';"
+mysql -u root -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';"
+mysql -u root -e "FLUSH PRIVILEGES;"
+
+# Install PHP and necessary modules
+echo "Installing PHP  and modules..."
+sudo apt install -y php php-gd php-json php-mbstring php-curl php-xml php-zip php-mysql php-intl php-bz2 php-imagick php-fpm php-cli libapache2-mod-php php-sqlite3 php-pgsql
+
+ # Create Data Directory
     echo "Creating Data Directory..."
     if [[ ! -d "$DATA_DIRECTORY" ]]; then
         mkdir -p "$DATA_DIRECTORY"
@@ -973,33 +989,31 @@ nextcloud_install(){
     fi
     chown -R www-data:www-data "$DATA_DIRECTORY"
     chmod -R 750 "$DATA_DIRECTORY"
+    
+# Configure PHP for Nextcloud
+echo "Configuring PHP..."
+PHP_INI_PATH=$(php -r "echo php_ini_loaded_file();")
+sed -i "s/memory_limit = .*/memory_limit = 512M/" "$PHP_INI_PATH"
+sed -i "s/upload_max_filesize = .*/upload_max_filesize = 512M/" "$PHP_INI_PATH"
+sed -i "s/post_max_size = .*/post_max_size = 512M/" "$PHP_INI_PATH"
+sed -i "s/max_execution_time = .*/max_execution_time = 300/" "$PHP_INI_PATH"
 
-    # Configure Apache
-    echo "Configuring Apache for Nextcloud..."
-    cat > /etc/apache2/sites-available/nextcloud.conf <<EOF
-<VirtualHost *:80>
-    ServerAdmin admin@$DOMAIN
-    DocumentRoot $NEXTCLOUD_PATH
-    ServerName $DOMAIN
+# Download and configure Nextcloud
+echo "Downloading Nextcloud..."
+wget https://download.nextcloud.com/server/releases/nextcloud-${NEXTCLOUD_VERSION}.tar.bz2
+tar -xjf nextcloud-${NEXTCLOUD_VERSION}.tar.bz2
+mv nextcloud $NEXTCLOUD_PATH
+chown -R www-data:www-data $NEXTCLOUD_PATH
+chmod -R 755 $NEXTCLOUD_PATH
 
-    <Directory $NEXTCLOUD_PATH>
-        Require all granted
-        AllowOverride All
-        Options FollowSymLinks MultiViews
-    </Directory>
+# Enable Nextcloud configuration and necessary Apache modules
+a2ensite nextcloud.conf
+a2enmod rewrite headers env dir mime setenvif
+systemctl restart apache2
 
-    ErrorLog \${APACHE_LOG_DIR}/nextcloud_error.log
-    CustomLog \${APACHE_LOG_DIR}/nextcloud_access.log combined
-</VirtualHost>
-EOF
-
-    a2enmod rewrite headers env dir mime
-    a2ensite nextcloud
-    systemctl restart apache2
-
-    # Finish
-    echo "Nextcloud installation complete."
-    echo "Please access http://$DOMAIN to complete setup in the browser."
+# Finish
+echo "Nextcloud installation complete."
+echo "Please access http://$DOMAIN/nextcloud to complete setup in the browser."
 }
 
 moodle_install(){
