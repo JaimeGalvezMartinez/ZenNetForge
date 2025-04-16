@@ -50,7 +50,7 @@ configure_firewall() {
             1)  # Permitir acceso a un puerto específico
                 read -p "Input the port to allow (e.g., 80, 443, 22): " puerto
                 echo "Allowing access to port $puerto..."
-                sudo ufw allow "$puerto"
+                ufw allow "$puerto"
                 echo "Port $puerto allowed."
                 ;;
             2)  # Permitir acceso a un puerto específico desde una IP
@@ -62,12 +62,12 @@ configure_firewall() {
                 ;;
             3)  # Ver reglas actuales
                 echo "Showing current firewall rules..."
-                sudo ufw status verbose
+                ufw status verbose
                 ;;
             4)  # Install UFW
                 echo "Installing UFW..."
-                sudo apt update -y
-                sudo apt install ufw -y
+        	 apt update -y
+                 apt install ufw -y
                 ;;
             5)  # Activate firewall
                 echo "Activating firewall..."
