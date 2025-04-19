@@ -912,24 +912,19 @@ NEXTCLOUD_VERSION=${NEXTCLOUD_VERSION:-"28.0.0"}  # Default version if user inpu
 read -p "Enter the database name (default: nextcloud_db): " DB_NAME
 DB_NAME=${DB_NAME:-"nextcloud_db"}
 
-# Prompt for database user
-read -p "Enter the database user name (default: nextcloud_user): " DB_USER
-DB_USER=${DB_USER:-"nextcloud_user"}
+while true; do
+    read -sp "Enter the password for the database user: " DB_PASSWORD
+    echo
+    read -sp "Re-enter the password to verify: " DB_PASSWORD2
+    echo
 
-# Prompt for database password
-read -sp "Enter the password for the database user: " DB_PASSWORD
-echo
-
-read -sp "Enter Again the password for the database user for verify": BD_PASSWORD2
-echo
-
-# Compare passwords
-if [ "$DB_PASSWORD" != "$DB_PASSWORD2" ]; then
-    echo "Error: Passwords do not match. Please try again."
-    exit 1
-fi
-
-echo "Password confirmed."
+    if [ "$DB_PASSWORD" == "$DB_PASSWORD2" ]; then
+        echo "Password confirmed."
+        break
+    else
+        echo "Error: Passwords do not match. Please try again."
+    fi
+done
 
 # Prompt for Nextcloud installation path
 read -p "Enter the Nextcloud installation path (default: /var/www/html/nextcloud): " NEXTCLOUD_PATH
