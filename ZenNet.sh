@@ -1053,20 +1053,14 @@ data_directory=${data_directory:-"/var/www/moodledata"}
 
 
 
-# Prompt for database password
-read -sp "Enter the password for the database user: " DB_PASSWORD
-echo
-
- Prompt again to verify password
-read -sp "Re-enter the password to verify: " DB_PASSWORD2
-echo
-
 # Compare passwords
 while true; do
 # Start an infinite loop to keep prompting until the password is confirmed 
 
+# Prompt Again for database password
     read -sp "Enter the password for the database user: " DB_PASSWORD
     echo
+    # Prompt for database password
     read -sp "Re-enter the password to verify: " DB_PASSWORD2
     echo
 
