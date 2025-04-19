@@ -913,15 +913,23 @@ read -p "Enter the database name (default: nextcloud_db): " DB_NAME
 DB_NAME=${DB_NAME:-"nextcloud_db"}
 
 while true; do
+# Start an infinite loop to keep prompting until the password is confirmed 
+
     read -sp "Enter the password for the database user: " DB_PASSWORD
     echo
     read -sp "Re-enter the password to verify: " DB_PASSWORD2
     echo
 
+ # Compare the two passwords
+ 
     if [ "$DB_PASSWORD" == "$DB_PASSWORD2" ]; then
+    # If they match, confirm success and break out of the loop
+    
         echo "Password confirmed."
         break
     else
+     # If they don't match, show an error and prompt again
+     
         echo "Error: Passwords do not match. Please try again."
     fi
 done
@@ -1054,12 +1062,27 @@ read -sp "Re-enter the password to verify: " DB_PASSWORD2
 echo
 
 # Compare passwords
-if [ "$DB_PASSWORD" != "$DB_PASSWORD2" ]; then
-    echo "Error: Passwords do not match. Please try again."
-    exit 1
-fi
+while true; do
+# Start an infinite loop to keep prompting until the password is confirmed 
 
-echo "Password confirmed."
+    read -sp "Enter the password for the database user: " DB_PASSWORD
+    echo
+    read -sp "Re-enter the password to verify: " DB_PASSWORD2
+    echo
+
+ # Compare the two passwords
+ 
+    if [ "$DB_PASSWORD" == "$DB_PASSWORD2" ]; then
+    # If they match, confirm success and break out of the loop
+    
+        echo "Password confirmed."
+        break
+    else
+     # If they don't match, show an error and prompt again
+     
+        echo "Error: Passwords do not match. Please try again."
+    fi
+done
 
 # Prompt for installation path
 read -p "Enter the moodle installation path (default: /var/www/html/moodle): " MOODLE_PATH
@@ -1177,15 +1200,28 @@ Prompt again to verify password
 read -sp "Re-enter the password to verify: " DB_PASSWORD2
 echo
 
-# Compare passwords
-if [ "$DB_PASSWORD" != "$DB_PASSWORD2" ]; then
-    echo "Error: Passwords do not match. Please try again."
-    exit 1
-fi
 
-echo "Password confirmed."
-echo ""
+while true; do
+# Start an infinite loop to keep prompting until the password is confirmed 
 
+    read -sp "Enter the password for the database user: " DB_PASSWORD
+    echo
+    read -sp "Re-enter the password to verify: " DB_PASSWORD2
+    echo
+
+ # Compare the two passwords
+ 
+    if [ "$DB_PASSWORD" == "$DB_PASSWORD2" ]; then
+    # If they match, confirm success and break out of the loop
+    
+        echo "Password confirmed."
+        break
+    else
+     # If they don't match, show an error and prompt again
+     
+        echo "Error: Passwords do not match. Please try again."
+    fi
+done
 
 # Display installation details
 echo ""
