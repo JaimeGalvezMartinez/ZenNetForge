@@ -920,6 +920,17 @@ DB_USER=${DB_USER:-"nextcloud_user"}
 read -sp "Enter the password for the database user: " DB_PASSWORD
 echo
 
+read -sp "Enter Again the password for the database user for verify": BD_PASSWORD2
+echo
+
+# Compare passwords
+if [ "$DB_PASSWORD" != "$DB_PASSWORD2" ]; then
+    echo "Error: Passwords do not match. Please try again."
+    exit 1
+fi
+
+echo "Password confirmed."
+
 # Prompt for Nextcloud installation path
 read -p "Enter the Nextcloud installation path (default: /var/www/html/nextcloud): " NEXTCLOUD_PATH
 NEXTCLOUD_PATH=${NEXTCLOUD_PATH:-"/var/www/html/nextcloud"}
@@ -1043,6 +1054,18 @@ data_directory=${data_directory:-"/var/www/moodledata"}
 read -sp "Enter the password for the database user: " DB_PASSWORD
 echo
 
+ Prompt again to verify password
+read -sp "Re-enter the password to verify: " DB_PASSWORD2
+echo
+
+# Compare passwords
+if [ "$DB_PASSWORD" != "$DB_PASSWORD2" ]; then
+    echo "Error: Passwords do not match. Please try again."
+    exit 1
+fi
+
+echo "Password confirmed."
+
 # Prompt for installation path
 read -p "Enter the moodle installation path (default: /var/www/html/moodle): " MOODLE_PATH
 MOODLE_PATH=${MOODLE_PATH:-"/var/www/html/moodle"}
@@ -1113,7 +1136,7 @@ sed -i "s/post_max_size = .*/post_max_size = 512M/" "$PHP_INI_PATH"
 sed -i "s/max_execution_time = .*/max_execution_time = 300/" "$PHP_INI_PATH"
 
 
-# Download and configure Nextcloud
+# Download and configure Moodle
 echo "Downloading Moodle..."
 sudo apt install git
 sudo apt install php-xml
