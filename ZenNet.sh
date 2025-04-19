@@ -1176,8 +1176,21 @@ WP_DIR="/var/www/html/wordpress"
 # Ask user for database details
 read -p "Enter the database name: " DB_NAME
 read -p "Enter the database username: " DB_USER
-read -s -p "Enter the database password: " DB_PASS
+read -s -p "Enter the database password: " DB_PASSWORD
+
+Prompt again to verify password
+read -sp "Re-enter the password to verify: " DB_PASSWORD2
+echo
+
+# Compare passwords
+if [ "$DB_PASSWORD" != "$DB_PASSWORD2" ]; then
+    echo "Error: Passwords do not match. Please try again."
+    exit 1
+fi
+
+echo "Password confirmed."
 echo ""
+
 
 # Display installation details
 echo ""
