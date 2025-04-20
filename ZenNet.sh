@@ -14,79 +14,103 @@ if [ $EUID -ne 0 ]; then
    exit 1
 fi
 
-configure_firewall() {
 
+
+  configure_firewall() {
 
     echo "==============================================================================="
-    echo "=========================== Firewall SETUP ===================================="
+    echo "=========================== FIREWALL SETUP ===================================="
     echo "==============================================================================="
 
-    # Asegurarse de que UFW está instalado
+    # Make sure UFW is installed
     if ! command -v ufw &>/dev/null; then
-        echo "UFW no está instalado. Install UFW (Uncomplicated Firewall)..."
-        apt update && apt install ufw -y
+        echo "UFW is not installed. Installing UFW (Uncomplicated Firewall)..."
+        sudo apt update && sudo apt install ufw -y
     fi
 
-    # Verificar si UFW está activo
+    # Check if UFW is active
     if sudo ufw status | grep -q "inactive"; then
-        echo "Activating UFW..."
+        echo "Enabling UFW..."
         sudo ufw enable
     else
         echo "UFW is already active."
     fi
 
     while true; do
-        echo "Select an option to configure the firewall:"
+        echo ""
+        echo "========================= FIREWALL MENU ========================="
         echo "1) Allow access to a specific port"
-        echo "2) Allow access to a specific port via specific IP"
-        echo "3) Show firewall rules"
-        echo "4) Install Firewall"
-        echo "5) Activate Firewall"
-        echo "6) Disable Firewall"
-        echo "7) Exit"
-        read -p "Choose an option: " opcion
+        echo "2) Allow access to a specific port from a specific IP"
+        echo "3) Delete rule: IP to specific port"
+        echo "4) Show firewall rules"
+        echo "5) Install UFW"
+        echo "6) Enable UFW"
+        echo "7) Disable UFW"
+        echo "8) Exit"
+        echo "================================================================="
+        read -rp "Choose an option: " option
 
-        case $opcion in
-            1)  # Permitir acceso a un puerto específico
-                read -p "Input the port to allow (e.g., 80, 443, 22): " puerto
-                echo "Allowing access to port $puerto..."
-                ufw allow "$puerto"
-                echo "Port $puerto allowed."
+        case $option in
+            1)
+                read -rp "Enter the port to allow (e.g., 80, 443, 22): " port
+                if [[ "$port" =~ ^[0-9]+$ ]]; then
+                    echo "Allowing access to port $port..."
+                    sudo ufw allow "$port"
+                    echo "Port $port allowed."
+                else
+                    echo "Invalid port number."
+                fi
                 ;;
-            2)  # Permitir acceso a un puerto específico desde una IP
-                read -p "Input the port to allow (e.g., 80, 443, 22): " puerto
-                read -p "Input the IP (e.g., 192.168.1.100): " ip
-                echo "Allowing access to port $puerto from IP $ip..."
-                sudo ufw allow from "$ip" to any port "$puerto"
-                echo "Access to port $puerto from IP $ip allowed."
+            2)
+                read -rp "Enter the port to allow (e.g., 80, 443, 22): " port
+                read -rp "Enter the IP address (e.g., 192.168.1.100): " ip
+                if [[ "$port" =~ ^[0-9]+$ && "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                    echo "Allowing access to port $port from $ip..."
+                    sudo ufw allow from "$ip" to any port "$port"
+                    echo "Access allowed."
+                else
+                    echo "Invalid port or IP."
+                fi
                 ;;
-            3)  # Ver reglas actuales
+            3)
+                read -rp "Enter the port (e.g., 22, 80, 443): " port
+                read -rp "Enter the IP to remove (e.g., 192.168.1.100): " ip
+                if [[ "$port" =~ ^[0-9]+$ && "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                    echo "Removing rule for port $port from IP $ip..."
+                    sudo ufw delete allow from "$ip" to any port "$port"
+                    echo "Rule deleted."
+                else
+                    echo "Invalid port or IP."
+                fi
+                ;;
+            4)
                 echo "Showing current firewall rules..."
-                ufw status verbose
+                sudo ufw status verbose
                 ;;
-            4)  # Install UFW
+            5)
                 echo "Installing UFW..."
-        	 apt update -y
-                 apt install ufw -y
+                sudo apt update -y
+                sudo apt install ufw -y
                 ;;
-            5)  # Activate firewall
-                echo "Activating firewall..."
+            6)
+                echo "Enabling UFW..."
                 sudo ufw enable
                 ;;
-            6)  # Disable Firewall
-                echo "Disabling firewall..."
+            7)
+                echo "Disabling UFW..."
                 sudo ufw disable
                 ;;
-            7)  # Exit
+            8)
                 echo "Exiting firewall configuration."
                 break
                 ;;
-            *)  # Opción no válida
-                echo "Invalid option."
+            *)
+                echo "Invalid option. Please try again."
                 ;;
         esac
     done
 }
+
 
 
 
