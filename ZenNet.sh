@@ -1890,7 +1890,7 @@ php -v
 }
 
 # Función para instalar un certificado SSL
-install_certificate() {
+manage_certbot() {
   read -p "Enter the domain for the SSL certificate: " domain
   read -p "Enter your email address: " email
 
