@@ -760,11 +760,10 @@ echo "==========================================================================
 
 backup_or_restore_backup_from_ssh_server() {
 
-
 # Log file
 LOG_FILE="$HOME/backup.log"
 
-# Function to create a backup
+# Function to create a backup of a directory
 backup() {
     read -r -p "Enter the directory to back up: " BACKUP_DIR
     read -r -p "Enter the local folder to store the backup (If it doesn't exist, it will be created automatically): " DEST_DIR
@@ -794,6 +793,98 @@ backup() {
     fi
 }
 
+# Function to create a database backup
+backup_database() {
+    read -r -p "Enter MySQL/MariaDB user: " DB_USER
+    read -r -s -p "Enter password: " DB_PASS
+    echo
+    read -r -p "Enter database name: " DB_NAME
+    read -r -p "Enter host (default is localhost): " DB_HOST
+    read -r -p "Enter the local folder to store the backup: " DEST_DIR
+
+    DB_HOST=${DB_HOST:-localhost}
+    mkdir -p "$DEST_DIR"
+
+    BACKUP_FILE="$DEST_DIR/db_backup_${DB_NAME}_$(date +'%Y%m%d_%H%M%S').sql.gz"
+
+    echo "$(date +"%Y-%m-%d %H:%M:%S") - Starting database backup..." | tee -a "$LOG_FILE"
+    mysqldump -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" | gzip > "$BACKUP_FILE"
+
+    if [ $? -eq 0 ]; then
+        echo "$(date +"%Y-%m-%d %H:%M:%S") - Database backup created: $BACKUP_FILE" | tee -a "$LOG_FILE"
+    else
+        echo "$(date +"%Y-%m-%d %H:%M:%S") - Error creating the database backup" | tee -a "$LOG_FILE"
+        exit 1
+    fi
+
+    read -r -p "Do you want to send the backup to a remote server? (y/n): " RESPONSE
+    if [[ "$RESPONSE" =~ ^[Yy]$ ]]; then
+        send_to_remote "$BACKUP_FILE"
+    fi
+}
+
+# Function to restore a database from a local backup
+restore_database() {
+    read -r -p "Enter the path to the .sql.gz backup file: " BACKUP_FILE
+    if [ ! -f "$BACKUP_FILE" ]; then
+        echo "Error: File '$BACKUP_FILE' does not exist."
+        exit 1
+    fi
+
+    read -r -p "Enter MySQL/MariaDB user: " DB_USER
+    read -r -s -p "Enter password: " DB_PASS
+    echo
+    read -r -p "Enter the name of the database to restore into (must already exist): " DB_NAME
+    read -r -p "Enter host (default is localhost): " DB_HOST
+
+    DB_HOST=${DB_HOST:-localhost}
+
+    echo "$(date +"%Y-%m-%d %H:%M:%S") - Restoring database from backup..." | tee -a "$LOG_FILE"
+    gunzip -c "$BACKUP_FILE" | mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME"
+
+    if [ $? -eq 0 ]; then
+        echo "$(date +"%Y-%m-%d %H:%M:%S") - Database '$DB_NAME' successfully restored." | tee -a "$LOG_FILE"
+    else
+        echo "$(date +"%Y-%m-%d %H:%M:%S") - Error restoring the database." | tee -a "$LOG_FILE"
+        exit 1
+    fi
+}
+
+# Function to restore a database from a remote server
+restore_database_from_remote() {
+    read -r -p "Enter the remote server user: " REMOTE_USER
+    read -r -p "Enter the remote server IP or domain: " REMOTE_HOST
+    read -r -p "Enter the SSH port (Default is 22): " REMOTE_PORT
+    read -r -p "Enter the path of the .sql.gz file on the remote server: " REMOTE_FILE
+    read -r -p "Enter MySQL/MariaDB user: " DB_USER
+    read -r -s -p "Enter password: " DB_PASS
+    echo
+    read -r -p "Enter the target database name (must already exist): " DB_NAME
+    read -r -p "Enter host (default is localhost): " DB_HOST
+
+    REMOTE_PORT=${REMOTE_PORT:-22}
+    DB_HOST=${DB_HOST:-localhost}
+
+    TEMP_FILE="$HOME/$(basename "$REMOTE_FILE")"
+
+    echo "$(date +"%Y-%m-%d %H:%M:%S") - Downloading database backup from $REMOTE_HOST..." | tee -a "$LOG_FILE"
+    scp -P "$REMOTE_PORT" "$REMOTE_USER@$REMOTE_HOST:$REMOTE_FILE" "$TEMP_FILE"
+
+    if [ $? -ne 0 ]; then
+        echo "$(date +"%Y-%m-%d %H:%M:%S") - Error downloading the file" | tee -a "$LOG_FILE"
+        exit 1
+    fi
+
+    echo "$(date +"%Y-%m-%d %H:%M:%S") - Restoring database from $TEMP_FILE..." | tee -a "$LOG_FILE"
+    gunzip < "$TEMP_FILE" | mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME"
+
+    if [ $? -eq 0 ]; then
+        echo "$(date +"%Y-%m-%d %H:%M:%S") - Database successfully restored from $TEMP_FILE" | tee -a "$LOG_FILE"
+    else
+        echo "$(date +"%Y-%m-%d %H:%M:%S") - Error restoring the database" | tee -a "$LOG_FILE"
+    fi
+}
+
 # Function to send a file to a remote server
 send_to_remote() {
     FILE_TO_SEND="$1"
@@ -801,9 +892,9 @@ send_to_remote() {
     read -r -p "Enter the remote server IP or domain: " REMOTE_HOST
     read -r -p "Enter the SSH port (Default is 22): " REMOTE_PORT
     read -r -p "Enter the path on the remote server to store the file: " REMOTE_PATH
-    
+
     REMOTE_PORT=${REMOTE_PORT:-22}
-    
+
     echo "$(date +"%Y-%m-%d %H:%M:%S") - Checking connection to $REMOTE_HOST on port $REMOTE_PORT..." | tee -a "$LOG_FILE"
     if ! nc -z "$REMOTE_HOST" "$REMOTE_PORT"; then
         echo "$(date +"%Y-%m-%d %H:%M:%S") - Error: Could not connect to $REMOTE_HOST on port $REMOTE_PORT." | tee -a "$LOG_FILE"
@@ -812,7 +903,7 @@ send_to_remote() {
 
     echo "$(date +"%Y-%m-%d %H:%M:%S") - Sending file to $REMOTE_HOST..." | tee -a "$LOG_FILE"
     scp -P "$REMOTE_PORT" "$FILE_TO_SEND" "$REMOTE_USER@$REMOTE_HOST:$REMOTE_PATH"
-    
+
     if [ $? -eq 0 ]; then
         echo "$(date +"%Y-%m-%d %H:%M:%S") - File successfully sent" | tee -a "$LOG_FILE"
     else
@@ -820,7 +911,7 @@ send_to_remote() {
     fi
 }
 
-# Function to restore a backup from a remote server
+# Function to restore a file-based backup from a remote server
 restore_backup() {
     read -r -p "Enter the remote server user: " REMOTE_USER
     read -r -p "Enter the remote server IP or domain: " REMOTE_HOST
@@ -829,10 +920,10 @@ restore_backup() {
     read -r -p "Enter the folder where the backup should be restored: " RESTORE_DIR
 
     REMOTE_PORT=${REMOTE_PORT:-22}
-    
+
     echo "$(date +"%Y-%m-%d %H:%M:%S") - Downloading backup from $REMOTE_HOST..." | tee -a "$LOG_FILE"
     scp -P "$REMOTE_PORT" "$REMOTE_USER@$REMOTE_HOST:$REMOTE_FILE" "$HOME"
-    
+
     if [ $? -eq 0 ]; then
         BACKUP_FILENAME=$(basename "$REMOTE_FILE")
         echo "$(date +"%Y-%m-%d %H:%M:%S") - Backup successfully downloaded: $HOME/$BACKUP_FILENAME" | tee -a "$LOG_FILE"
@@ -858,13 +949,13 @@ download_file() {
     read -r -p "Enter the SSH port (Default is 22): " REMOTE_PORT
     read -r -p "Enter the path of the file on the remote server: " REMOTE_FILE
     read -r -p "Enter the local folder to save the file: " LOCAL_DIR
-    
+
     REMOTE_PORT=${REMOTE_PORT:-22}
     mkdir -p "$LOCAL_DIR"
-    
+
     echo "$(date +"%Y-%m-%d %H:%M:%S") - Downloading file from $REMOTE_HOST..." | tee -a "$LOG_FILE"
     scp -P "$REMOTE_PORT" "$REMOTE_USER@$REMOTE_HOST:$REMOTE_FILE" "$LOCAL_DIR"
-    
+
     if [ $? -eq 0 ]; then
         echo "$(date +"%Y-%m-%d %H:%M:%S") - File successfully downloaded to $LOCAL_DIR" | tee -a "$LOG_FILE"
     else
@@ -874,19 +965,23 @@ download_file() {
 
 # Main menu
 echo "Select an option:"
-echo "1) Create a backup"
+echo "1) Create a backup of a directory"
 echo "2) Restore a backup"
 echo "3) Download a file from a remote server"
+echo "4) Create a database backup"
+echo "5) Restore a database from local backup"
+echo "6) Restore a database from remote server"
 read -r -p "Enter the option number: " OPTION
 
 case $OPTION in
     1) backup ;;
     2) restore_backup ;;
     3) download_file ;;
+    4) backup_database ;;
+    5) restore_database ;;
+    6) restore_database_from_remote ;;
     *) echo "Invalid option. Exiting..." ;;
 esac
-
-echo "$(date +"%Y-%m-%d %H:%M:%S") - Process completed." | tee -a "$LOG_FILE"
 
 }
 
