@@ -208,46 +208,59 @@ configure_network() {
     # Display available network interfaces (excluding lo)
     echo "Available network interfaces:"
     echo "--------------------------------"
-    ip -o link show | awk -F': ' '!/ lo:/{print $2}' | while read -r interface; do
-        mac=$(cat /sys/class/net/$interface/address)
-        echo "Interface: $interface - MAC: $mac"
+    ip -o link show | awk -F': ' '!/ lo:/{print $2}' | while read -r iface; do
+        mac=$(cat /sys/class/net/$iface/address)  # Get the MAC address of the interface
+        echo "Interface: $iface - MAC: $mac"  # Display interface and its MAC address
     done
-
     echo "--------------------------------"
 
-    # Ask the user to select an interface
-    read -p "Enter the network interface you want to configure: " interface
+    # Ask for the network interface to configure
+    read -rp "Enter the network interface you want to configure: " interface
 
-    # Ask if they want a static IP or DHCP
+    # Check if the interface exists using ip link
+    if ! ip link show "$interface" &>/dev/null; then
+        echo "Error: Interface '$interface' does not exist."
+        return 1  # Exit if interface does not exist
+    fi
+
+    # Ask whether to use Static IP or DHCP
     echo "Do you want to configure a Static IP or use DHCP?"
     echo "1) Static IP"
     echo "2) DHCP (Automatic)"
-    read -p "Select an option (1 or 2): " option
+    read -rp "Select an option (1 or 2): " option
 
-    # Initialize variables
-    dns_servers=""
+    # Initialize empty variables for IP, CIDR, gateway, and DNS servers
+    ip_address=""
+    cidr=""
     gateway=""
+    dns_servers=""
 
+    # Backup current Netplan configuration if it exists
+    if [ -d /etc/netplan ]; then
+        sudo cp /etc/netplan/01-netcfg.yaml /etc/netplan/01-netcfg.yaml.bak 2>/dev/null
+    fi
+
+    # Handle Static IP option (1)
     if [[ "$option" == "1" ]]; then
-        # Static IP Configuration
-        read -p "Enter the IP address (e.g., 192.168.1.100): " ip_address
-        read -p "Enter the CIDR prefix (e.g., 24 for 255.255.255.0): " cidr
-        read -p "Enter the gateway (or press Enter to skip): " gateway
+        # Prompt user for IP, CIDR, gateway, and DNS servers
+        read -rp "Enter the IP address (e.g., 192.168.1.100): " ip_address
+        read -rp "Enter the CIDR prefix (e.g., 24 for 255.255.255.0): " cidr
+        read -rp "Enter the gateway (or press Enter to skip): " gateway
+        read -rp "Do you want to configure custom DNS servers? (y/n): " configure_dns
 
-        # Ask if the user wants to configure custom DNS servers
-        read -p "Do you want to configure custom DNS servers? (y/n): " configure_dns
         if [[ "$configure_dns" =~ ^[Yy]$ ]]; then
-            read -p "Enter DNS servers (comma-separated, e.g., 8.8.8.8,8.8.4.4): " dns_servers
+            read -rp "Enter DNS servers (comma-separated, e.g., 8.8.8.8,8.8.4.4): " dns_servers
         fi
 
-        # Validate CIDR prefix
+        # Validate CIDR prefix (it should be between 1 and 32)
         if ! [[ "$cidr" =~ ^[0-9]+$ ]] || [ "$cidr" -lt 1 ] || [ "$cidr" -gt 32 ]; then
             echo "Error: CIDR prefix must be a number between 1 and 32."
-            exit 1
+            return 1  # Exit if CIDR is invalid
         fi
 
-        # Create Netplan configuration for Static IP
-        sudo tee /etc/netplan/01-netcfg.yaml > /dev/null <<EOF
+        # If Netplan is present, configure Static IP in its YAML file
+        if [ -d /etc/netplan ]; then
+            sudo tee /etc/netplan/01-netcfg.yaml > /dev/null <<EOF
 network:
   version: 2
   renderer: networkd
@@ -256,60 +269,66 @@ network:
       dhcp4: no
       addresses:
         - $ip_address/$cidr
+$( [[ -n "$gateway" ]] && echo "      gateway4: $gateway" )  # Add gateway if provided
+$( [[ -n "$dns_servers" ]] && echo "      nameservers:\n        addresses: [$dns_servers]" )  # Add DNS if provided
 EOF
-
-        # Add gateway if provided
-        if [[ -n "$gateway" ]]; then
-            sudo tee -a /etc/netplan/01-netcfg.yaml > /dev/null <<EOF
-      gateway4: $gateway
+        else
+            # If Netplan is not present, use ifupdown to configure static IP
+            echo "Configuring static IP using ifupdown"
+            sudo tee /etc/network/interfaces > /dev/null <<EOF
+auto $interface
+iface $interface inet static
+    address $ip_address
+    netmask 255.255.255.0  # Assuming default subnet mask
+    gateway $gateway
+    dns-nameservers $dns_servers
 EOF
         fi
 
-        # Add DNS configuration if the user provided DNS servers
-        if [[ -n "$dns_servers" ]]; then
-            sudo tee -a /etc/netplan/01-netcfg.yaml > /dev/null <<EOF
-      nameservers:
-        addresses: [$dns_servers]
-EOF
-        fi
-
+    # Handle DHCP option (2)
     elif [[ "$option" == "2" ]]; then
-        # Ask if the user wants to configure custom DNS servers
-        read -p "Do you want to configure custom DNS servers? (y/n): " configure_dns
+        # Prompt for custom DNS servers
+        read -rp "Do you want to configure custom DNS servers? (y/n): " configure_dns
         if [[ "$configure_dns" =~ ^[Yy]$ ]]; then
-            read -p "Enter DNS servers (comma-separated, e.g., 8.8.8.8,8.8.4.4): " dns_servers
+            read -rp "Enter DNS servers (comma-separated, e.g., 8.8.8.8,8.8.4.4): " dns_servers
         fi
 
-        # Create Netplan configuration for DHCP
-        sudo tee /etc/netplan/01-netcfg.yaml > /dev/null <<EOF
+        # If Netplan is present, configure DHCP in its YAML file
+        if [ -d /etc/netplan ]; then
+            sudo tee /etc/netplan/01-netcfg.yaml > /dev/null <<EOF
 network:
   version: 2
   renderer: networkd
   ethernets:
     $interface:
-      dhcp4: yes
+      dhcp4: yes  # Enable DHCP for automatic IP configuration
+$( [[ -n "$dns_servers" ]] && echo "      nameservers:\n        addresses: [$dns_servers]" )  # Add DNS if provided
 EOF
-
-        # Add DNS configuration if the user provided DNS servers
-        if [[ -n "$dns_servers" ]]; then
-            sudo tee -a /etc/netplan/01-netcfg.yaml > /dev/null <<EOF
-      nameservers:
-        addresses: [$dns_servers]
+        else
+            # If Netplan is not present, use ifupdown to configure DHCP
+            echo "Configuring DHCP using ifupdown"
+            sudo tee /etc/network/interfaces > /dev/null <<EOF
+auto $interface
+iface $interface inet dhcp  # Enable DHCP for this interface
 EOF
         fi
 
     else
         echo "Invalid option. You must choose 1 or 2."
-        exit 1
+        return 1  # Exit if the option is invalid
     fi
 
-    # Adjust Netplan file permissions to avoid warnings
-    sudo chmod 600 /etc/netplan/01-netcfg.yaml
-
-    # Apply Netplan configuration
-    sudo netplan apply
-
-    echo "Network configuration successfully applied. 🚀"
+    # Apply changes based on the network manager available
+    if [ -d /etc/netplan ]; then
+        # If Netplan is present, apply configuration
+        sudo chmod 600 /etc/netplan/01-netcfg.yaml  # Ensure correct file permissions
+        echo "Applying network configuration with Netplan..."
+        sudo netplan apply && echo "Network configuration successfully applied. 🚀"
+    else
+        # If ifupdown is used, restart the interface
+        echo "Applying network configuration with ifupdown..."
+        sudo ifdown "$interface" && sudo ifup "$interface" && echo "Network configuration successfully applied. 🚀"
+    fi
 }
 
 # Configure gateway server
