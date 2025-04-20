@@ -16,19 +16,20 @@ fi
 
 
 
-  configure_firewall() {
+
+configure_firewall() {
 
     echo "==============================================================================="
     echo "=========================== FIREWALL SETUP ===================================="
     echo "==============================================================================="
 
-    # Make sure UFW is installed
+    # Ensure UFW is installed
     if ! command -v ufw &>/dev/null; then
         echo "UFW is not installed. Installing UFW (Uncomplicated Firewall)..."
         sudo apt update && sudo apt install ufw -y
     fi
 
-    # Check if UFW is active
+    # Enable UFW if it's inactive
     if sudo ufw status | grep -q "inactive"; then
         echo "Enabling UFW..."
         sudo ufw enable
@@ -42,11 +43,12 @@ fi
         echo "1) Allow access to a specific port"
         echo "2) Allow access to a specific port from a specific IP"
         echo "3) Delete rule: IP to specific port"
-        echo "4) Show firewall rules"
-        echo "5) Install UFW"
-        echo "6) Enable UFW"
-        echo "7) Disable UFW"
-        echo "8) Exit"
+        echo "4) Delete rule by port (no IP)"
+        echo "5) Show firewall rules"
+        echo "6) Install UFW"
+        echo "7) Enable UFW"
+        echo "8) Disable UFW"
+        echo "9) Exit"
         echo "================================================================="
         read -rp "Choose an option: " option
 
@@ -84,23 +86,33 @@ fi
                 fi
                 ;;
             4)
+                read -rp "Enter the port to delete (e.g., 80, 443, 22): " port
+                if [[ "$port" =~ ^[0-9]+$ ]]; then
+                    echo "Deleting rule for port $port..."
+                    sudo ufw delete allow "$port"
+                    echo "Rule for port $port deleted."
+                else
+                    echo "Invalid port number."
+                fi
+                ;;
+            5)
                 echo "Showing current firewall rules..."
                 sudo ufw status verbose
                 ;;
-            5)
+            6)
                 echo "Installing UFW..."
                 sudo apt update -y
                 sudo apt install ufw -y
                 ;;
-            6)
+            7)
                 echo "Enabling UFW..."
                 sudo ufw enable
                 ;;
-            7)
+            8)
                 echo "Disabling UFW..."
                 sudo ufw disable
                 ;;
-            8)
+            9)
                 echo "Exiting firewall configuration."
                 break
                 ;;
@@ -110,7 +122,6 @@ fi
         esac
     done
 }
-
 
 
 
