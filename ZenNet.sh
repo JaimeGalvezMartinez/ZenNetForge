@@ -48,7 +48,8 @@ configure_firewall() {
         echo "6) Install UFW"
         echo "7) Enable UFW"
         echo "8) Disable UFW"
-        echo "9) Exit"
+        echo "9) Delete rule by name (e.g., 'Apache Full')"
+        echo "10) Exit"
         echo "================================================================="
         read -rp "Choose an option: " option
 
@@ -113,6 +114,18 @@ configure_firewall() {
                 sudo ufw disable
                 ;;
             9)
+                echo "Available application profiles:"
+                sudo ufw app list
+                read -rp "Enter the rule name to delete (e.g., 'Apache Full'): " rule_name
+                if [[ -n "$rule_name" ]]; then
+                    echo "Deleting rule: $rule_name"
+                    sudo ufw delete allow "$rule_name"
+                    echo "Rule '$rule_name' deleted."
+                else
+                    echo "No rule name entered."
+                fi
+                ;;
+            10)
                 echo "Exiting firewall configuration."
                 break
                 ;;
