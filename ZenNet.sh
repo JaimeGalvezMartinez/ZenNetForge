@@ -349,6 +349,7 @@ EOF
     fi
 }
 
+
 # Configure gateway server
 
 configure_gateway_server(){
