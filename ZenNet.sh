@@ -1935,7 +1935,7 @@ sudo apt update
 
 # Paso 2: Install PHP 8.1 And extensions
 echo "[2/6] Install PHP 8.1 And extensions..."
-sudo apt install -y php8.1 php8.1-cli php8.1-fpm php8.1-mysql php8.1-curl php8.1-xml php8.1-mbstring php8.1-zip php8.1-bcmath php8.1-soap php8.1-intl
+sudo apt install -y php php-cli php-fpm php-mysql php-curl php-xml php-mbstring php-zip php-bcmath php-soap php-intl
 
 # Paso 3: Detect Web Server
 echo "[3/6] Detect Web Server"
