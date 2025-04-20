@@ -1889,6 +1889,74 @@ php -v
 
 }
 
+# Función para instalar un certificado SSL
+install_certificate() {
+  read -p "Enter the domain for the SSL certificate: " domain
+  read -p "Enter your email address: " email
+
+  echo "Updating repositories and upgrading system..."
+  apt update && apt upgrade -y || { echo "Failed to update system"; exit 1; }
+
+  echo "Installing Certbot..."
+  apt install -y certbot || { echo "Failed to install Certbot"; exit 1; }
+
+  echo "Select your web server:"
+  echo "1) Apache"
+  echo "2) Nginx"
+  read -p "Choice [1-2]: " web_server
+
+  case $web_server in
+    1)
+      apt install -y python3-certbot-apache || { echo "Failed to install Apache plugin"; exit 1; }
+      certbot --apache -d "$domain" --email "$email" --agree-tos --no-eff-email
+      ;;
+    2)
+      apt install -y python3-certbot-nginx || { echo "Failed to install Nginx plugin"; exit 1; }
+      certbot --nginx -d "$domain" --email "$email" --agree-tos --no-eff-email
+      ;;
+    *)
+      echo "Invalid choice. Aborting installation."
+      return
+      ;;
+  esac
+
+  echo "✅ SSL certificate installed successfully for $domain."
+}
+
+# Función para mostrar certificados existentes
+show_certificates() {
+  echo "📋 Listing installed SSL certificates..."
+  certbot certificates || echo "⚠️ No certificates found or Certbot is not installed."
+}
+
+# Función para eliminar un certificado SSL
+delete_certificate() {
+  read -p "Enter the domain name of the certificate to delete: " domain
+  certbot delete --cert-name "$domain"
+}
+
+# Menú principal
+main_menu() {
+  while true; do
+    clear
+    echo "=== SSL Certificate Manager ==="
+    echo "1) Install SSL certificate"
+    echo "2) Show existing certificates"
+    echo "3) Delete SSL certificate"
+    echo "4) Exit"
+    echo "==============================="
+    read -p "Select an option [1-4]: " choice
+
+    case $choice in
+      1) install_certificate ;;
+      2) show_certificates ;;
+      3) delete_certificate ;;
+      4) echo "Goodbye!"; exit 0 ;;
+      *) echo "Invalid option. Please try again."; sleep 2 ;;
+    esac
+  done
+}
+
 # Main Menu
 while true; do
 
