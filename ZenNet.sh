@@ -1379,60 +1379,68 @@ echo "✅ Installation complete. Access http://your-server/wordpress to finish W
 
 }
 
-manage_certbot() {
-
-
-# Function to list installed SSL certificates
-list_certificates() {
-  echo "Listing installed SSL certificates..."
-  certbot certificates || { echo "Failed to list certificates"; exit 1; }
-}
-
-# Function to install Certbot and set up a certificate
 install_certificate() {
   # Prompt for the domain and email
   read -p "Enter the domain for the SSL certificate: " domain
   read -p "Enter your email address: " email
 
+  # Validate input
+  if [[ -z "$domain" || -z "$email" ]]; then
+    echo "Error: Domain and email cannot be empty."
+    exit 1
+  fi
+
   # Update repositories and ensure the system is up to date
   echo "Updating repositories and upgrading system..."
   apt update && apt upgrade -y || { echo "Failed to update system"; exit 1; }
 
-  # Install necessary software for Certbot if not already installed
+  # Install Certbot using Snap (recommended for Debian >= 10)
   if ! command -v certbot &> /dev/null; then
-    echo "Certbot not found, installing..."
-    apt install -y software-properties-common || { echo "Failed to install software-properties-common"; exit 1; }
-    add-apt-repository ppa:certbot/certbot -y || { echo "Failed to add Certbot repository"; exit 1; }
-    apt update
-    apt install -y certbot python3-certbot-nginx python3-certbot-apache || { echo "Failed to install Certbot"; exit 1; }
+    echo "Certbot not found, installing via Snap (recommended for Debian)..."
+
+    # Install Snap if not present
+    if ! command -v snap &> /dev/null; then
+      apt install -y snapd || { echo "Failed to install snapd"; exit 1; }
+
+      # Ensure snap is usable right after installation
+      snap install core && snap refresh core || { echo "Failed to install/refresh core snap"; exit 1; }
+    fi
+
+    # Ensure snapd service is active
+    systemctl enable --now snapd || { echo "Failed to start snapd"; exit 1; }
+    ln -s /var/lib/snapd/snap /snap 2>/dev/null
+
+    # Install Certbot via Snap
+    snap install --classic certbot || { echo "Failed to install Certbot via snap"; exit 1; }
+    ln -s /snap/bin/certbot /usr/bin/certbot
   else
     echo "Certbot is already installed."
   fi
 
-  # Check if Nginx or Apache is in use
+  # Detect which web server is running
   if systemctl is-active --quiet nginx; then
     web_server="nginx"
   elif systemctl is-active --quiet apache2; then
     web_server="apache2"
   else
-    echo "Neither Nginx nor Apache was detected. Ensure you have one of them installed."
+    echo "Neither Nginx nor Apache is running. Please start one before proceeding."
     exit 1
   fi
 
-  # Run Certbot to obtain the SSL certificate based on the web server
+  # Run Certbot to obtain the SSL certificate
   echo "Obtaining SSL certificate for $domain using $web_server..."
   if [ "$web_server" == "nginx" ]; then
-    certbot --nginx -d "$domain" --agree-tos --no-eff-email --email "$email" || { echo "Failed to obtain SSL certificate for Nginx"; exit 1; }
+    certbot --nginx -d "$domain" --agree-tos --no-eff-email --email "$email" || { echo "Failed to obtain SSL certificate with Nginx"; exit 1; }
   elif [ "$web_server" == "apache2" ]; then
-    certbot --apache -d "$domain" --agree-tos --no-eff-email --email "$email" || { echo "Failed to obtain SSL certificate for Apache"; exit 1; }
+    certbot --apache -d "$domain" --agree-tos --no-eff-email --email "$email" || { echo "Failed to obtain SSL certificate with Apache"; exit 1; }
   fi
 
   # Set up automatic certificate renewal
   echo "Setting up automatic renewal..."
-  systemctl enable certbot.timer || { echo "Failed to enable certbot.timer"; exit 1; }
-  systemctl start certbot.timer || { echo "Failed to start certbot.timer"; exit 1; }
+  systemctl enable certbot.timer && systemctl start certbot.timer \
+    || { echo "Failed to enable/start certbot.timer"; exit 1; }
 
-  echo "SSL certificate successfully installed for $domain."
+  echo "✅ SSL certificate successfully installed and renewal configured for $domain."
 }
 
 # Menu options
