@@ -2113,6 +2113,9 @@ main_menu() {
   done
 }
 
+main_menu
+
+} 
 
 # Función para gestionar Certbot (instalar, ver, eliminar)
 manage_certbot() {
