@@ -1934,7 +1934,7 @@ get_INTERNET_CONNECTION
 echo "-----------------------------------"
 
 }
-update_php () {
+openvpn_installer () {
 
 # Script to automatically install and configure OpenVPN
 
@@ -2210,7 +2210,7 @@ while true; do
     echo "17) Configure ACL "
     echo "18) Cerbot Management "
     echo "19) Make Backup or restore backup from ssh server "
-    echo "20) Update PHP Version "
+    echo "20) Automatic OpenVPN Installer and Client Generator"
     echo "21) Exit"
     read -p "Choose an option: " opcion
 
@@ -2235,7 +2235,7 @@ while true; do
    	17) configure_acl ;;
         18) manage_certbot ;;
 	19) backup_or_restore_backup_from_ssh_server ;;
- 	20) update_php ;;
+ 	20) openvpn_install ;;
         21) echo "Exiting. Goodbye!"; break ;;
         *) echo "Invalid option." ;;
     esac
