@@ -2039,8 +2039,9 @@ EOF
 
   systemctl enable openvpn@server
   systemctl start openvpn@server
+  sudo ufw allow $PORT/$PROTOCOL
 
-  echo -e "\n✅ VPN successfully configured! First client file available at ~/openvpn-clients/${CLIENT_NAME}.ovpn"
+  echo -e "\n✅ VPN successfully configured and allowed ! First client file available at ~/openvpn-clients/${CLIENT_NAME}.ovpn"
 }
 
 create_client_cert() {
