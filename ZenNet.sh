@@ -2104,7 +2104,7 @@ main_menu() {
         ;;
       3)
         echo "👋 Goodbye!"
-        exit 0
+        exit 1
         ;;
       *)
         echo "❌ Invalid option, please try again."
