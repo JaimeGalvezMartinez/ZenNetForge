@@ -1973,8 +1973,8 @@ setup_openvpn() {
   PORT=${PORT:-1194}
   confirm "Using port '$PORT'. Is this correct?" || setup_openvpn
 
-  read -p "Protocol (udp or tcp) [default udp]: " PROTOCOL
-  PROTOCOL=${PROTOCOL:-udp}
+  read -p "Protocol (udp or tcp) [default tcp]: " PROTOCOL
+  PROTOCOL=${PROTOCOL:-tcp}
   confirm "Using protocol '$PROTOCOL'. Is this correct?" || setup_openvpn
 
   read -p "Initial client name: " CLIENT_NAME
@@ -2013,6 +2013,7 @@ ifconfig-pool-persist ipp.txt
 push "redirect-gateway def1 bypass-dhcp"
 push "dhcp-option DNS 8.8.8.8"
 push "dhcp-option DNS 8.8.4.4"
+push "dhcp-option DNS 9.9.9.9"
 keepalive 10 120
 cipher AES-256-CBC
 user nobody
