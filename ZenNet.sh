@@ -487,8 +487,6 @@ subnet $network netmask $netmask {
   # Configure the network interface
   echo "INTERFACESv4=\"$interface_name\"" > /etc/default/isc-dhcp-server
 
-  # Configure the dhcpd.conf file with basic settings
-  configure_dhcp
 
   # Restart and enable the DHCP service
   systemctl restart isc-dhcp-server
@@ -496,8 +494,7 @@ subnet $network netmask $netmask {
 
   echo "DHCP server configured on interface $interface_name with network 10.33.206.0/24."
 
-# Function to configure the dhcpd.conf file
-configure_dhcp() {
+# configure_dhcp() {
   # Backup the configuration file
   cp /etc/dhcp/dhcpd.conf /etc/dhcp/dhcpd.conf.bak
   
