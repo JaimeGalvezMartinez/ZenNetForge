@@ -517,7 +517,6 @@ subnet $subnet netmask $subnet_mask {
     option domain-name "$domain_name";
 }
 EOL
-}
             ;;
         5)
             echo "Exiting DHCP configuration."
