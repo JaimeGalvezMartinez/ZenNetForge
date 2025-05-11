@@ -1929,189 +1929,6 @@ echo "-----------------------------------"
 get_INTERNET_CONNECTION
 echo "-----------------------------------"
 
-}
-openvpn_installer () {
-
-# Script to automatically install and configure OpenVPN
-
-print_banner() {
-  clear
-  echo "" 
-  echo " ██████╗ ██████╗ ██╗   ██╗██████╗ ██╗   ██╗██████╗ ███████╗██╗   ██╗███╗   ██╗"
-  echo "██╔════╝██╔═══██╗██║   ██║██╔══██╗██║   ██║██╔══██╗██╔════╝██║   ██║████╗  ██║"
-  echo "██║     ██║   ██║██║   ██║██████╔╝██║   ██║██████╔╝███████╗██║   ██║██╔██╗ ██║"
-  echo "██║     ██║   ██║██║   ██║██╔═══╝ ██║   ██║██╔═══╝ ╚════██║██║   ██║██║╚██╗██║"
-  echo "╚██████╗╚██████╔╝╚██████╔╝██║     ╚██████╔╝██║     ███████║╚██████╔╝██║ ╚████║"
-  echo " ╚═════╝ ╚═════╝  ╚═════╝ ╚═╝      ╚═════╝ ╚═╝     ╚══════╝ ╚═════╝ ╚═╝  ╚═══╝"
-  echo ""
-  echo "            Automatic OpenVPN Installer and Client Generator"
-  echo ""
-}
-
-confirm() {
-  read -rp "$1 [y/N]: " response
-  case "$response" in
-    [yY][eE][sS]|[yY]) 
-      true
-      ;;
-    *)
-      false
-      ;;
-  esac
-}
-
-setup_openvpn() {
-  echo "Let's set up your OpenVPN server! 🚀"
-  read -p "Public IP or domain of the server: " SERVER_ADDRESS
-  confirm "You entered '$SERVER_ADDRESS' as server address. Is this correct?" || setup_openvpn
-
-  read -p "Port for OpenVPN [default 1194]: " PORT
-  PORT=${PORT:-1194}
-  confirm "Using port '$PORT'. Is this correct?" || setup_openvpn
-
-  read -p "Protocol (udp or tcp) [default tcp]: " PROTOCOL
-  PROTOCOL=${PROTOCOL:-tcp}
-  confirm "Using protocol '$PROTOCOL'. Is this correct?" || setup_openvpn
-
-  read -p "Initial client name: " CLIENT_NAME
-  confirm "Initial client name will be '$CLIENT_NAME'. Is this correct?" || setup_openvpn
-
-  echo -e "\nStarting installation and configuration... Please wait 🛠️"
-
-  apt update
-  apt install -y openvpn easy-rsa
-
-  make-cadir /etc/openvpn/easy-rsa
-  cd /etc/openvpn/easy-rsa || exit
-
-  ./easyrsa init-pki
-  ./easyrsa build-ca nopass <<< "$CLIENT_NAME CA"
-  ./easyrsa gen-req server nopass <<< "server"
-  ./easyrsa sign-req server server <<< "yes"
-  ./easyrsa gen-dh
-  openvpn --genkey --secret ta.key
-
-  create_client_cert "$CLIENT_NAME"
-
-  cp pki/ca.crt pki/issued/server.crt pki/private/server.key pki/dh.pem ta.key /etc/openvpn
-
-  cat > /etc/openvpn/server.conf <<EOF
-port $PORT
-proto $PROTOCOL
-dev tun
-ca ca.crt
-cert server.crt
-key server.key
-dh dh.pem
-tls-auth ta.key 0
-server 10.8.0.0 255.255.255.0
-ifconfig-pool-persist ipp.txt
-push "redirect-gateway def1 bypass-dhcp"
-push "dhcp-option DNS 8.8.8.8"
-push "dhcp-option DNS 8.8.4.4"
-push "dhcp-option DNS 9.9.9.9"
-keepalive 10 120
-cipher AES-256-CBC
-user nobody
-group nogroup
-persist-key
-persist-tun
-status openvpn-status.log
-verb 3
-explicit-exit-notify 1
-EOF
-
-  sed -i 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf
-  sysctl -p
-
-  iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -o $(ip route show default | awk '/default/ {print $5}') -j MASQUERADE
-  iptables-save > /etc/iptables.rules
-
-  cat > /etc/network/if-pre-up.d/iptables <<EOF
-#!/bin/sh
-iptables-restore < /etc/iptables.rules
-EOF
-  chmod +x /etc/network/if-pre-up.d/iptables
-
-  systemctl enable openvpn@server
-  systemctl start openvpn@server
-  sudo ufw allow $PORT/$PROTOCOL
-
-  echo -e "\n✅ VPN successfully configured and allowed on the firewall ! First client file available at ~/openvpn-clients/${CLIENT_NAME}.ovpn"
-}
-
-create_client_cert() {
-  local CLIENT_NAME="$1"
-
-  ./easyrsa gen-req "$CLIENT_NAME" nopass <<< "$CLIENT_NAME"
-  ./easyrsa sign-req client "$CLIENT_NAME" <<< "yes"
-
-  mkdir -p ~/openvpn-clients
-  cat > ~/openvpn-clients/${CLIENT_NAME}.ovpn <<EOF
-client
-dev tun
-proto $PROTOCOL
-remote $SERVER_ADDRESS $PORT
-resolv-retry infinite
-nobind
-persist-key
-persist-tun
-remote-cert-tls server
-cipher AES-256-CBC
-verb 3
-auth SHA256
-<ca>
-$(cat /etc/openvpn/ca.crt)
-</ca>
-<cert>
-$(cat pki/issued/${CLIENT_NAME}.crt)
-</cert>
-<key>
-$(cat pki/private/${CLIENT_NAME}.key)
-</key>
-<tls-auth>
-$(cat /etc/openvpn/ta.key)
-</tls-auth>
-key-direction 1
-EOF
-
-  echo "🎉 Client configuration created: ~/openvpn-clients/${CLIENT_NAME}.ovpn"
-}
-
-main_menu() {
-  print_banner
-  while true; do
-    echo -e "\nMain Menu"
-    echo "1) Setup OpenVPN Server"
-    echo "2) Create new client"
-    echo "3) Exit"
-    read -rp "Choose an option [1-3]: " OPTION
-
-    case $OPTION in
-      1)
-        setup_openvpn
-        ;;
-      2)
-        if [ -d "/etc/openvpn/easy-rsa" ]; then
-          cd /etc/openvpn/easy-rsa || exit
-          read -rp "Enter new client name: " NEW_CLIENT
-          create_client_cert "$NEW_CLIENT"
-        else
-          echo "⚠️ EasyRSA directory not found. Please setup OpenVPN server first."
-        fi
-        ;;
-      3)
-        echo "👋 Goodbye!"
-        exit 1
-        ;;
-      *)
-        echo "❌ Invalid option, please try again."
-        ;;
-    esac
-  done
-}
-
-main_menu
 
 } 
 
@@ -2211,8 +2028,7 @@ while true; do
     echo "17) Configure ACL "
     echo "18) Cerbot Management "
     echo "19) Make Backup or restore backup from ssh server "
-    echo "20) Automatic OpenVPN Installer and Client Generator"
-    echo "21) Exit"
+    echo "20) Exit"
     read -p "Choose an option: " opcion
 
     # case for execute the fuctions
@@ -2236,8 +2052,7 @@ while true; do
    	17) configure_acl ;;
         18) manage_certbot ;;
 	19) backup_or_restore_backup_from_ssh_server ;;
- 	20) openvpn_installer;;
-        21) echo "Exiting. Goodbye!"; break ;;
+        20) echo "Exiting. Goodbye!"; break ;;
         *) echo "Invalid option." ;;
     esac
 done
