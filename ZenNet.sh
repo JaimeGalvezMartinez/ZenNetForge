@@ -1160,7 +1160,11 @@ ufw allow 'Apache Full'
 # Install MariaDB
 echo "Installing MariaDB..."
 apt install mariadb-server -y
-mysql_secure_installation
+
+# Configure root user
+mysql_secure_configurarion
+
+mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';"
 
 # Create database and user for Nextcloud
 echo "Configuring database for Nextcloud..."
