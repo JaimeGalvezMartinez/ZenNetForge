@@ -1164,17 +1164,15 @@ ufw allow 'Apache Full'
 echo "Installing MariaDB..."
 apt install mariadb-server -y
 
-# Configure root user
-mysql_secure_configurarion
-
-mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';"
-
 # Create database and user for Nextcloud
 echo "Configuring database for Nextcloud..."
 mysql -u root -e "CREATE DATABASE ${DB_NAME};"
 mysql -u root -e "CREATE USER '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';"
 mysql -u root -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';"
 mysql -u root -e "FLUSH PRIVILEGES;"
+
+# Setup root user
+mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';"
 
 # Install PHP and necessary modules
 echo "Installing PHP  and modules..."
