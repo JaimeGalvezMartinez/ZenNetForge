@@ -1172,7 +1172,7 @@ mysql -u root -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhos
 mysql -u root -e "FLUSH PRIVILEGES;"
 
 # Setup root user
-mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';"
+# mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';"
 
 # Install PHP and necessary modules
 echo "Installing PHP  and modules..."
