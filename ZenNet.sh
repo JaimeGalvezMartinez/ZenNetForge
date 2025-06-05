@@ -1126,18 +1126,18 @@ NEXTCLOUD_PATH=${NEXTCLOUD_PATH:-"/var/www/html/nextcloud"}
 read -p "Enter the domain or IP to access Nextcloud: " DOMAIN
 
 # Configuration confirmation
-echo -e ""
-echo -e "========================================================"
-echo -e "============ Configuration Summary: ===================="
-echo -e "========================================================"
-echo -e ""
 
-echo "Nextcloud Version: $NEXTCLOUD_VERSION"
-echo "Database: $DB_NAME"
-echo "Database User: $DB_USER"
-echo "Installation Path: $NEXTCLOUD_PATH"
-echo "Data Directory: $DATA_DIRECTORY"
-echo "Domain or IP: $DOMAIN"
+echo -e "========================================================"
+echo -e "============ Configuration Summary ====================="
+echo -e "========================================================"
+echo -e "Nextcloud Version:     $NEXTCLOUD_VERSION"
+echo -e "Database:              $DB_NAME"
+echo -e "Database User:         $DB_USER"
+echo -e "Installation Path:     $NEXTCLOUD_PATH"
+echo -e "Data Directory:        $DATA_DIRECTORY"
+echo -e "Domain or IP:          $DOMAIN"
+echo -e "========================================================"
+
 echo -e "Do you want to proceed with the installation? (y/n): "
 
 # Confirmation to proceed with the installation
