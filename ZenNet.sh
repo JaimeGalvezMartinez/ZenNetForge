@@ -1087,7 +1087,7 @@ NEXTCLOUD_VERSION=${NEXTCLOUD_VERSION:-"28.0.0"}  # Default version if user inpu
 
 # Prompt for database name
 read -p "Enter the database name (default: nextcloud_db): " DB_NAME
-DB_NAME=${DB_NAME:-"nextcloud_db"}
+DB_USER=${DB_USER:-"nextcloud_db"}
 
 read -p "Input Database User (Default nextcloud_user): " DB_USER
 DB_NAME=${DB_NAME:-"nextcloud_user"}
