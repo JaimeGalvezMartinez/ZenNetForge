@@ -1372,7 +1372,7 @@ read -p "Enter the database name: " DB_NAME
 read -p "Enter the database username: " DB_USER
 read -s -p "Enter the database password: " DB_PASSWORD
 
-Prompt again to verify password
+# Prompt again to verify password
 read -sp "Re-enter the password to verify: " DB_PASSWORD2
 echo
 
