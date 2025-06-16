@@ -1,9 +1,9 @@
 
  
 #!/bin/bash
-# Version 2.1 - June 2025
+# Version 2.2 - June 2025
 # Developer: Jaime Galvez (TheHellishPandaa)
-# Description: Bash script for configuring g-at-lic license.
+# Description: Bash script for configuring 
 # If you like my work, please support it with a start in my github´s profile
 
 clear
