@@ -3972,6 +3972,8 @@ else
 	installWireGuard
 fi
 
+}
+
 # Main Menu
 while true; do
 
