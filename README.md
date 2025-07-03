@@ -36,7 +36,9 @@ Run the Script as Root:
 
 This project is licensed under the GNU General Public License v3.0. 
 
+## AUTHOR
 
+Jaime Galvez Martinez &COPY; 2025
 
 ## Mentions
 
