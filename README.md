@@ -16,7 +16,7 @@ A Script for set a Server for Enthusiasts
 Clone the Repository (or copy the script directly from this repository):
 
 ```bash
-git clone https://github.com/TJaimeGalvezMartinez/ZenNetForge.git
+git clone https://github.com/JaimeGalvezMartinez/ZenNetForge.git
 ```
 ```bash
 cd ZenNetForge
