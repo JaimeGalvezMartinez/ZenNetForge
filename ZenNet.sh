@@ -654,20 +654,122 @@ esac
 }
 
 # Change FQDN Name
-configure_fqdn_name() {
 
+configure_local_dns_server() {
 
-    read -p "New FQDN (e.g., server.example.com): " NEW_FQDN
-    NEW_HOSTNAME=$(echo $NEW_FQDN | cut -d '.' -f 1)
-    echo $NEW_HOSTNAME > /etc/hostname
-    echo "127.0.1.1 $NEW_FQDN $NEW_HOSTNAME" >> /etc/hosts
+set -e
 
-    hostnamectl set-hostname $NEW_HOSTNAME
-    echo "================================================"
-    echo "          FQDN updated to $NEW_FQDN             "
-    echo "================================================"
-    echo ""
-    echo ""
+# Colors
+GREEN="\e[32m"
+RED="\e[31m"
+YELLOW="\e[33m"
+CYAN="\e[36m"
+NC="\e[0m"
+
+echo -e "${CYAN}===================================================="
+echo -e " 🖥️  Interactive DNS Server Installer with BIND9"
+echo -e "====================================================${NC}"
+
+# 1️⃣ Install BIND9 if not installed
+if ! command -v named-checkconf &> /dev/null; then
+    echo -e "${YELLOW}📦 Installing BIND9...${NC}"
+    sudo apt update
+    sudo apt install -y bind9 bind9utils bind9-doc
+else
+    echo -e "${GREEN}✔ BIND9 is already installed${NC}"
+fi
+
+# 2️⃣ Ask how many zones to configure
+read -rp "👉 How many zones do you want to create? " ZONES
+
+for ((i=1; i<=ZONES; i++)); do
+    echo -e "\n${CYAN}=========================="
+    echo -e " ⚙️  Zone configuration $i"
+    echo -e "==========================${NC}"
+    read -rp "➡️  Domain (e.g. mydomain.local): " DOMAIN
+    read -rp "➡️  DNS server IP (e.g. 192.168.1.10): " SERVER_IP
+    read -rp "➡️  Network for reverse zone (e.g. 192.168.1.0): " NETWORK
+
+    ZONE_FILE="/etc/bind/db.${DOMAIN}"
+    REV_ZONE_FILE="/etc/bind/db.${NETWORK}.${DOMAIN}"
+    OCTET=$(echo $SERVER_IP | awk -F. '{print $4}')
+
+    echo -e "${YELLOW}📄 Creating configuration files for $DOMAIN...${NC}"
+
+    # 3️⃣ Add zone to named.conf.local
+    sudo tee -a /etc/bind/named.conf.local > /dev/null <<EOF
+
+zone "$DOMAIN" {
+    type master;
+    file "$ZONE_FILE";
+};
+
+zone "${NETWORK}.in-addr.arpa" {
+    type master;
+    file "$REV_ZONE_FILE";
+};
+EOF
+
+    # 4️⃣ Create forward zone file
+    sudo tee $ZONE_FILE > /dev/null <<EOF
+;
+; Forward zone for $DOMAIN
+;
+\$TTL    604800
+@       IN      SOA     ns1.$DOMAIN. admin.$DOMAIN. (
+                         2         ; Serial
+                    604800         ; Refresh
+                     86400         ; Retry
+                   2419200         ; Expire
+                    604800 )       ; Negative Cache TTL
+;
+@       IN      NS      ns1.$DOMAIN.
+ns1     IN      A       $SERVER_IP
+www     IN      A       $SERVER_IP
+EOF
+
+    # 5️⃣ Create reverse zone file
+    sudo tee $REV_ZONE_FILE > /dev/null <<EOF
+;
+; Reverse zone for $NETWORK
+;
+\$TTL    604800
+@       IN      SOA     ns1.$DOMAIN. admin.$DOMAIN. (
+                         2         ; Serial
+                    604800         ; Refresh
+                     86400         ; Retry
+                   2419200         ; Expire
+                    604800 )       ; Negative Cache TTL
+;
+@       IN      NS      ns1.$DOMAIN.
+$OCTET  IN      PTR     ns1.$DOMAIN.
+$OCTET  IN      PTR     www.$DOMAIN.
+EOF
+
+    # 6️⃣ Verify zone configuration
+    echo -e "${YELLOW}🔍 Checking zone files...${NC}"
+    sudo named-checkzone $DOMAIN $ZONE_FILE
+    sudo named-checkzone ${NETWORK}.in-addr.arpa $REV_ZONE_FILE
+    echo -e "${GREEN}✔ Zone $DOMAIN configured successfully${NC}"
+done
+
+# 7️⃣ Restart service
+echo -e "${YELLOW}🔄 Applying configuration...${NC}"
+sudo named-checkconf
+sudo systemctl restart bind9
+sudo systemctl enable bind9
+
+# 8️⃣ Usage instructions
+echo -e "\n${CYAN}===================================================="
+echo -e " ✅ All zones have been configured successfully"
+echo -e "====================================================${NC}"
+echo -e "${GREEN}👉 You can now test your DNS server with:${NC}"
+echo -e "   dig @<SERVER_IP> www.<DOMAIN>"
+echo -e "   dig @<SERVER_IP> ns1.<DOMAIN>"
+echo -e "   nslookup www.<DOMAIN> <SERVER_IP>\n"
+
+echo -e "${YELLOW}💡 Note:${NC} For other clients to use this DNS server, set its IP in their resolv.conf or network settings."
+
 
 }
 
@@ -4125,7 +4227,7 @@ while true; do
     echo "2) Configure gateway server"
     echo "3) Configure DHCP server"
     echo "4) Install forwarder + cache DNS "
-    echo "5) Change FQDN Name"
+    echo "5) Configur Local DNS Server"
     echo "6) Configure SAMBA server"
     echo "7) Configure FTP server over SSH"
     echo "8) Configure Firewall"
@@ -4154,7 +4256,7 @@ while true; do
     2) configure_gateway_server ;;
     3) configure_dhcp_server ;;
 	4) install_forwarder_dns ;;
-    5) configure_fqdn_name ;;
+    5) configure_local_dns_server ;;
     6) install_samba_server ;;
     7) install_ftp_server_over_ssh ;;
     8) configure_firewall ;;
