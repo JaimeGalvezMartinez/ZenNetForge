@@ -3984,7 +3984,7 @@ shutdown_system() {
 		echo "The system will shutdown"
 
 }
-PXE_Setup {
+PXE_Setup () {
 
 
 # ================================
