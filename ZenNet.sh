@@ -1,9 +1,9 @@
 
  
 #!/bin/bash
-# Version 2.2 - June 2025
+# Version 2.3 - september 2025
 # Developer: Jaime Galvez (TheHellishPandaa)
-# Description: Bash script for configuring 
+# Description: Bash script for configuring a Linux based Server
 # If you like my work, please support it with a start in my github´s profile
 
 clear
