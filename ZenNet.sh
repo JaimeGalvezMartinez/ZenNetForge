@@ -3973,6 +3973,143 @@ else
 fi
 
 }
+reboot_system() {
+
+	reboot now
+	echo "The system will reboot"
+}
+shutdown_system() {
+
+		shutdown now
+		echo "The system will shutdown"
+
+}
+PXE_Setup {
+
+
+# ================================
+# iVentoy PXE Installer & systemd
+# ================================
+
+# Colors for messages
+RED="\e[31m"
+GREEN="\e[32m"
+YELLOW="\e[33m"
+BLUE="\e[34m"
+NC="\e[0m" # No color
+
+# Variables
+IVENTOY_VERSION="1.0.19"
+INSTALL_DIR="/opt/iventoy"
+JSON_FILE="$INSTALL_DIR/iventoy.json"
+SERVICE_FILE="/etc/systemd/system/iventoy.service"
+DOWNLOAD_URL="https://github.com/ventoy/PXE/releases/download/v$IVENTOY_VERSION/iventoy-$IVENTOY_VERSION-linux-free.tar.gz"
+
+echo -e "${BLUE}🚀 Starting iVentoy PXE installation...${NC}"
+
+# ------------------------------
+# 1️⃣ Stop and clean previous installation and configuration files
+# ------------------------------
+echo -e "${YELLOW}🔄 Stopping and removing previous configurations...${NC}"
+
+if systemctl is-active --quiet iventoy.service; then
+    echo -e "${YELLOW}Stopping existing service...${NC}"
+    sudo systemctl stop iventoy.service
+fi
+
+if systemctl list-unit-files | grep -q iventoy.service; then
+    echo -e "${YELLOW}Disabling existing service...${NC}"
+    sudo systemctl disable iventoy.service
+fi
+
+if [ -f "$SERVICE_FILE" ]; then
+    echo -e "${YELLOW}Removing old service file...${NC}"
+    sudo rm -f "$SERVICE_FILE"
+fi
+
+if [ -d "$INSTALL_DIR" ]; then
+    echo -e "${YELLOW}Removing previous installation and configuration files...${NC}"
+    sudo rm -rf "$INSTALL_DIR"
+fi
+
+# ------------------------------
+# 2️⃣ Create installation directory
+# ------------------------------
+echo -e "${BLUE}📂 Creating installation directory: $INSTALL_DIR${NC}"
+sudo mkdir -p $INSTALL_DIR
+sudo chown $USER:$USER $INSTALL_DIR
+
+# ------------------------------
+# 3️⃣ Download and extract iVentoy
+# ------------------------------
+echo -e "${BLUE}⬇️  Downloading iVentoy version $IVENTOY_VERSION...${NC}"
+wget $DOWNLOAD_URL -O /tmp/iventoy.tar.gz
+
+echo -e "${BLUE}📦 Extracting files into $INSTALL_DIR...${NC}"
+tar -xzf /tmp/iventoy.tar.gz -C $INSTALL_DIR
+
+# ------------------------------
+# 4️⃣ Detect iventoy.sh
+# ------------------------------
+SCRIPT_PATH=$(find $INSTALL_DIR -name iventoy.sh | head -n1)
+if [ -z "$SCRIPT_PATH" ]; then
+    echo -e "${RED}❌ Error: iventoy.sh was not found after extracting the tar.${NC}"
+    exit 1
+fi
+chmod +x "$SCRIPT_PATH"
+echo -e "${GREEN}✔ Found iventoy.sh at: $SCRIPT_PATH${NC}"
+
+# ------------------------------
+# 5️⃣ Create JSON file
+# ------------------------------
+echo -e "${BLUE}📝 Creating JSON file with executable path...${NC}"
+cat <<EOF > $JSON_FILE
+{
+  "path": "$SCRIPT_PATH"
+}
+EOF
+echo -e "${GREEN}✔ JSON created at $JSON_FILE${NC}"
+
+# ------------------------------
+# 6️⃣ Create systemd service
+# ------------------------------
+echo -e "${BLUE}⚙️  Configuring systemd service...${NC}"
+sudo bash -c "cat <<EOF > $SERVICE_FILE
+[Unit]
+Description=iVentoy PXE Service
+After=network.target
+
+[Service]
+Type=forking
+ExecStart=/bin/bash $SCRIPT_PATH start
+ExecStop=/bin/bash $SCRIPT_PATH stop
+Restart=on-failure
+WorkingDirectory=$(dirname $SCRIPT_PATH)
+User=root
+
+[Install]
+WantedBy=multi-user.target
+EOF"
+
+# ------------------------------
+# 7️⃣ Enable and start service
+# ------------------------------
+echo -e "${BLUE}🚀 Enabling and starting the service...${NC}"
+sudo systemctl daemon-reload
+sudo systemctl enable iventoy.service
+sudo systemctl restart iventoy.service
+
+# ------------------------------
+# 8️⃣ Quick verification
+# ------------------------------
+echo -e "${GREEN}🎉 iVentoy successfully installed in $INSTALL_DIR${NC}"
+echo -e "${GREEN}📄 JSON created at $JSON_FILE${NC}"
+echo -e "${GREEN}🔹 Systemd service active: systemctl status iventoy.service${NC}"
+echo -e "${GREEN}🔹 iVentoy will start automatically at boot${NC}"
+echo -e "${GREEN}🔹 To access the PXE Web UI, go to http://x.x.x.x:26000 or localhost:26000${NC}"
+
+}
+
 
 # Main Menu
 while true; do
@@ -3980,8 +4117,8 @@ while true; do
     echo "==================================================================="
     echo "========================= ZenNet Forge ============================"
     echo "==================================================================="
-    echo "====================== by: TheHellishPandaa ======================="
-    echo "==================== GitHub: TheHellishPandaa ====================="
+    echo "==================== by: Jaime Galvez Martinez ===================="
+    echo "=================== GitHub: JaimeGalvezMartinez ==================="
     echo "==================================================================="
     echo ""
     echo "1) Configure network interfaces"
@@ -4005,33 +4142,39 @@ while true; do
     echo "19) Make Backup or restore backup from ssh server "
     echo "20) Setup OpenVPN"
     echo "21) Setup Wireguard VPN"
-    echo "22) Exit"
+    echo "22) Install Preboot eXecution Environment (PXE) "
+	echo "23) Reboot System "
+	echo "24) Shutdown System "
+	echo "25) Exit "
     read -p "Choose an option: " opcion
 
     # case for execute the fuctions
     case $opcion in
-        1) configure_network ;;
-        2) configure_gateway_server ;;
-        3) configure_dhcp_server ;;
+    1) configure_network ;;
+    2) configure_gateway_server ;;
+    3) configure_dhcp_server ;;
 	4) install_forwarder_dns ;;
-        5) configure_fqdn_name ;;
-        6) install_samba_server ;;
-        7) install_ftp_server_over_ssh ;;
-        8) configure_firewall ;;
-        9) nextcloud_install ;;
-        10) moodle_install ;;
+    5) configure_fqdn_name ;;
+    6) install_samba_server ;;
+    7) install_ftp_server_over_ssh ;;
+    8) configure_firewall ;;
+    9) nextcloud_install ;;
+    10) moodle_install ;;
 	11) wp_install ;;
  	12) setup_virtualhost ;;
-        13) network_scan ;;
+    13) network_scan ;;
 	14) configure_prometheus ;;
  	15) configure_graphana ;;
   	16) show_system_info ;;
    	17) configure_acl ;;
-        18) manage_certbot ;;
+    18) manage_certbot ;;
 	19) backup_or_restore_backup_from_ssh_server ;;
  	20) setup_open_vpn;;
   	21) setup_wireguard_vpn;;
-        22) echo "Exiting. Goodbye!"; break ;;
+	22) PXE_Setup;;
+	23) reboot_system;;
+	24) shutdown_system;;
+    25) echo "Exiting. Goodbye!"; break ;;
         *) echo "Invalid option." ;;
     esac
 done
