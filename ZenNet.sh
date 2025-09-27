@@ -7,6 +7,7 @@
 # If you like my work, please support it with a start in my github´s profile
 
 clear
+sudo su
 
 # Check if exec in superuser permissions. 
 if [ $EUID -ne 0 ]; then
