@@ -15,6 +15,228 @@ if [ $EUID -ne 0 ]; then
    exit 1
 fi
 
+zentyal_80_setup() {
+
+# Zentyal 8.0 Installer for Ubuntu 22.04 LTS =>
+# Interactive menu version
+
+# ==========================
+# COLORS
+# ==========================
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BOLD='\033[1m'
+NC='\033[0m'
+NORM='\033[0m'
+
+# ==========================
+# CHECK FUNCTIONS
+# ==========================
+
+function check_ubuntu {
+  echo -e "\n${GREEN} - Checking Ubuntu version...${NC}"
+  UBUNTU_VERSION_NUM=$(lsb_release -sr)
+
+  if dpkg --compare-versions "$UBUNTU_VERSION_NUM" lt "22.04"; then
+      echo -e "${RED}  You are running Ubuntu ${UBUNTU_VERSION_NUM}. Only Ubuntu 22.04 LTS or newer is supported.${NC}"
+      exit 1
+  fi
+
+  if ! lsb_release -d | egrep -q "Ubuntu 22.04.? LTS$"; then
+      echo -e "${RED}  Invalid OS. Ubuntu 22.04.x LTS is required.${NC}"
+      exit 1
+  fi
+
+  echo -e "${GREEN}${BOLD}...OK${NC}${NORM}";echo
+}
+
+function check_broken_packages {
+  echo -e "\n${GREEN} - Checking for broken packages...${NC}"
+  if ! dpkg --audit; then
+      apt-get -f install
+  fi
+  echo -e "${GREEN}${BOLD}...OK${NC}${NORM}";echo
+}
+
+function check_available_packages {
+  echo -e "\n${GREEN} - Checking for available package updates...${NC}"
+  apt-get update -q
+  apt-get upgrade -y -q
+  echo -e "${GREEN}${BOLD}...OK${NC}${NORM}";echo
+}
+
+function check_disk_space {
+  echo -e "\n${GREEN} - Checking disk space...${NC}"
+  REQUIRED_BOOT=51200
+  REQUIRED_ROOT=358400
+  REQUIRED_VAR=358400
+
+  AVAILABLE_BOOT=$(df /boot | tail -1 | awk '{print $4}')
+  AVAILABLE_ROOT=$(df / | tail -1 | awk '{print $4}')
+  AVAILABLE_VAR=$(df /var | tail -1 | awk '{print $4}')
+
+  if [ "$AVAILABLE_BOOT" -lt "$REQUIRED_BOOT" ] || [ "$AVAILABLE_ROOT" -lt "$REQUIRED_ROOT" ] || [ "$AVAILABLE_VAR" -lt "$REQUIRED_VAR" ]; then
+      echo -e "${RED} Insufficient disk space.${NC}"
+      exit 1
+  fi
+
+  echo -e "${GREEN}${BOLD}...OK${NC}${NORM}";echo
+}
+
+function check_connection {
+  echo -e "\n${GREEN} - Checking Internet connection...${NC}"
+  if ! ping -c 2 google.com > /dev/null; then
+      echo -e "${RED} No Internet connection detected.${NC}"
+      exit 1
+  fi
+  echo -e "${GREEN}${BOLD}...OK${NC}${NORM}";echo
+}
+
+function check_webadmin_port {
+  echo -e "\n${GREEN} - Checking Webadmin port 8443...${NC}"
+  if ss -lnt | grep -q ':8443'; then
+      echo -e "${RED} Port 8443 is already in use.${NC}"
+      exit 1
+  fi
+  echo -e "${GREEN}${BOLD}...OK${NC}${NORM}";echo
+}
+
+function check_nic_names {
+  echo -e "\n${GREEN} - Checking network interface names...${NC}"
+  if ! ip -o link show | grep -q 'eth[0-9]'; then
+      echo -e "${RED} Interfaces are not using the old ethX naming.${NC}"
+      echo -e "If you want to continue, set: OLD_NIC_NAMING=false"
+      exit 1
+  fi
+  echo -e "${GREEN}${BOLD}...OK${NC}${NORM}";echo
+}
+
+# ==========================
+# INSTALLATION FUNCTIONS
+# ==========================
+
+function configure_repos {
+  echo -e "\n${GREEN} - Configuring repositories...${NC}"
+  sed -i '/zentyal/d' /etc/apt/sources.list
+  rm -f /etc/apt/sources.list.d/zentyal.list
+
+  wget -q http://archive.zentyal.org/zentyal-8.0-packages.asc -O- | apt-key add -
+  echo "deb http://archive.zentyal.org/zentyal 8.0 main extra" > /etc/apt/sources.list.d/zentyal.list
+
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+  echo "deb [arch=amd64] https://download.docker.com/linux/ubuntu jammy stable" > /etc/apt/sources.list.d/docker.list
+
+  add-apt-repository -y ppa:mozillateam/ppa
+
+  cat <<EOF >/etc/apt/preferences.d/mozilla-firefox
+Package: firefox
+Pin: release o=LP-PPA-mozillateam
+Pin-Priority: 1001
+EOF
+
+  echo -e "${GREEN}${BOLD}...OK${NC}${NORM}";echo
+}
+
+function install_zentyal {
+  echo -e "\n${GREEN} - Installing Zentyal...${NC}"
+  apt-get update -q
+  apt-get install -y zentyal zenbuntu-core
+  touch /var/lib/zentyal/.commercial-edition
+  touch /var/lib/zentyal/.license
+  echo -e "${GREEN}${BOLD}...OK${NC}${NORM}";echo
+}
+
+function install_graphical_environment {
+  echo -e "\n${GREEN} - Installing graphical environment...${NC}"
+  apt-get install -y zenbuntu-desktop lxdm
+  echo "/usr/sbin/lxdm" > /etc/X11/default-display-manager
+  echo -e "${GREEN}${BOLD}...OK${NC}${NORM}";echo
+}
+
+function post_install {
+  echo -e "\n${GREEN} - Disabling cloud-init...${NC}"
+  touch /etc/cloud/cloud-init.disabled
+  echo -e "${GREEN}${BOLD}...OK${NC}${NORM}";echo
+}
+
+# ==========================
+# MAIN MENU
+# ==========================
+
+function show_menu {
+  clear
+  echo "============================================"
+  echo "       Zentyal 8.0 Installer - Ubuntu 22.04"
+  echo "============================================"
+  echo "1) Check system requirements"
+  echo "2) Configure repositories"
+  echo "3) Install Zentyal"
+  echo "4) Install graphical environment (optional)"
+  echo "5) Post-installation tasks"
+  echo "6) Run everything in order"
+  echo "0) Exit"
+  echo "============================================"
+}
+
+while true; do
+  show_menu
+  read -p "Select an option: " option
+  case $option in
+    1)
+      check_ubuntu
+      check_broken_packages
+      check_available_packages
+      check_disk_space
+      check_connection
+      check_webadmin_port
+      check_nic_names
+      ;;
+    2)
+      configure_repos
+      ;;
+    3)
+      install_zentyal
+      ;;
+    4)
+      read -p "Do you want to install the Zentyal graphical environment? (y/n) [n]: " choice
+      choice=${choice:-n}
+      if [[ "$choice" =~ ^[Yy]$ ]]; then
+          install_graphical_environment
+      fi
+      ;;
+    5)
+      post_install
+      ;;
+    6)
+      check_ubuntu
+      check_broken_packages
+      check_available_packages
+      check_disk_space
+      check_connection
+      check_webadmin_port
+      check_nic_names
+      configure_repos
+      install_zentyal
+      read -p "Do you want to install the Zentyal graphical environment? (y/n) [n]: " choice
+      choice=${choice:-n}
+      if [[ "$choice" =~ ^[Yy]$ ]]; then
+          install_graphical_environment
+      fi
+      post_install
+      echo -e "\n${GREEN}${BOLD} Zentyal installation completed. Access it at https://<SERVER-IP>:8443 ${NC}${NORM}\n"
+      ;;
+    0)
+      echo "Exiting..."
+      exit 0
+      ;;
+    *)
+      echo "Invalid option."
+      ;;
+  esac
+  read -p "Press Enter to continue..." enter
+done
+
+}
 
 
 
