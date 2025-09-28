@@ -4590,7 +4590,7 @@ while true; do
     echo "21) Setup Wireguard VPN"
     echo "22) Install Preboot eXecution Environment (PXE) "
 	echo "23) Install Zentyal on Ubuntu 22.04 or lastest"
-	echo "24) Autofirmed TLS/SSL Setup"
+	echo "24) Self-Signed TLS/SSL Setup"
 	echo "25) Reboot System "
 	echo "26) Shutdown System "
 	echo "26) Exit "
