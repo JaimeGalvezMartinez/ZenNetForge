@@ -38,12 +38,12 @@ function check_ubuntu {
   UBUNTU_VERSION_NUM=$(lsb_release -sr)
 
   if dpkg --compare-versions "$UBUNTU_VERSION_NUM" lt "22.04"; then
-      echo -e "${RED}  You are running Ubuntu ${UBUNTU_VERSION_NUM}. Only Ubuntu 22.04 LTS or newer is supported.${NC}"
+      echo -e "${RED}  You are running Ubuntu ${UBUNTU_VERSION_NUM}. Only Ubuntu 22.04 LTS or later is supported.${NC}"
       exit 1
   fi
 
   if ! lsb_release -d | egrep -q "Ubuntu 22.04.? LTS$"; then
-      echo -e "${RED}  Invalid OS. Ubuntu 22.04.x LTS is required.${NC}"
+      echo -e "${RED}  Invalid OS. Ubuntu 22.04.x LTS is required. For Ubuntu 20.04, please, use Zentyal 7.0${NC}"
       exit 1
   fi
 
@@ -165,9 +165,9 @@ function post_install {
 
 function show_menu {
   clear
-  echo "============================================"
-  echo "       Zentyal 8.0 Installer - Ubuntu 22.04"
-  echo "============================================"
+  echo "========================================================"
+  echo "       Zentyal 8.0 Installer - Ubuntu 22.04 or later"
+  echo "========================================================"
   echo "1) Check system requirements"
   echo "2) Configure repositories"
   echo "3) Install Zentyal"
@@ -175,7 +175,7 @@ function show_menu {
   echo "5) Post-installation tasks"
   echo "6) Run everything in order"
   echo "0) Exit"
-  echo "============================================"
+  echo "========================================================="
 }
 
 while true; do
