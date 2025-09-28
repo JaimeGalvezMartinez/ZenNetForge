@@ -116,24 +116,30 @@ function check_nic_names {
 
 function configure_repos {
   echo -e "\n${GREEN} - Configuring repositories...${NC}"
+
+  # Limpieza de repos previos de Zentyal
   sed -i '/zentyal/d' /etc/apt/sources.list
   rm -f /etc/apt/sources.list.d/zentyal.list
 
-  wget -q http://archive.zentyal.org/zentyal-8.0-packages.asc -O- | apt-key add -
-  echo "deb http://archive.zentyal.org/zentyal 8.0 main extra" > /etc/apt/sources.list.d/zentyal.list
+  # Clave y repositorio de Zentyal 8.0
+  wget -qO- https://keys.zentyal.org/zentyal-8.0-packages-org.asc | gpg --dearmor -o /usr/share/keyrings/zentyal-archive-keyring.gpg
+  echo "deb [signed-by=/usr/share/keyrings/zentyal-archive-keyring.gpg] http://packages.zentyal.org/zentyal 8.0 main extra" > /etc/apt/sources.list.d/zentyal.list
 
-  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-  echo "deb [arch=amd64] https://download.docker.com/linux/ubuntu jammy stable" > /etc/apt/sources.list.d/docker.list
+  # Clave y repositorio de Docker
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+  echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu jammy stable" > /etc/apt/sources.list.d/docker.list
 
+  # Repositorio de Firefox (Mozillateam PPA)
   add-apt-repository -y ppa:mozillateam/ppa
 
+  # Preferencia para que Firefox use siempre el PPA
   cat <<EOF >/etc/apt/preferences.d/mozilla-firefox
 Package: firefox
 Pin: release o=LP-PPA-mozillateam
 Pin-Priority: 1001
 EOF
 
-  echo -e "${GREEN}${BOLD}...OK${NC}${NORM}";echo
+  echo -e "${GREEN}${BOLD}...OK${NC}${NORM}"; echo
 }
 
 function install_zentyal {
