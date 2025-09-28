@@ -14,6 +14,11 @@ if [ $EUID -ne 0 ]; then
    exit 1
 fi
 
+setup () {
+
+}
+
+
 zentyal_80_setup() {
 
 # Zentyal 8.0 Installer for Ubuntu 22.04 LTS =>
