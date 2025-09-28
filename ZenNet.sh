@@ -7,7 +7,6 @@
 # If you like my work, please support it with a start in my github´s profile
 
 clear
-sudo su
 
 # Check if exec in superuser permissions. 
 if [ $EUID -ne 0 ]; then
@@ -42,10 +41,10 @@ function check_ubuntu {
       exit 1
   fi
 
-  if ! lsb_release -d | egrep -q "Ubuntu 22.04.? LTS$"; then
-      echo -e "${RED}  Invalid OS. Ubuntu 22.04.x LTS is required. For Ubuntu 20.04, please, use Zentyal 7.0${NC}"
-      exit 1
-  fi
+if ! lsb_release -d | grep -qE "Ubuntu 22\.04(\.[0-9]+)? LTS"; then
+    echo -e "${RED}  Invalid OS. Ubuntu 22.04.x LTS is required. For Ubuntu 20.04, please, use Zentyal 7.0${NC}"
+    exit 1
+fi
 
   echo -e "${GREEN}${BOLD}...OK${NC}${NORM}";echo
 }
