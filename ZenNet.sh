@@ -4593,7 +4593,7 @@ while true; do
 	echo "24) Self-Signed TLS/SSL Setup"
 	echo "25) Reboot System "
 	echo "26) Shutdown System "
-	echo "26) Exit "
+	echo "27) Exit "
     read -p "Choose an option: " opcion
 
     # case for execute the fuctions
