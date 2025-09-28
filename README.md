@@ -9,7 +9,7 @@ A Script for set a Server for Enthusiasts
 
 -  Root Access: This script must be executed with root privileges.
 
-- Supported System: Ubuntu 20.04 or newer (adjustments may be required for other distributions).
+- Recomend System: Ubuntu 22.04 or newer (adjustments may be required for other distributions).
 
 ## Installation & Usage
 
