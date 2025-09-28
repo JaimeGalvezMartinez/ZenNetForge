@@ -238,6 +238,266 @@ done
 
 }
 
+zentyal_70_setup() {
+
+set -e
+
+## Global variables
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+BOLD=$(tput bold)
+NORM=$(tput sgr0)
+BOOT_SPACE='51200'
+SYSTEM_SPACE='358400'
+SURI_KEY='D7F87B2966EB736F'
+
+ZEN_GUI=''
+
+# ==========================
+# OS and Zentyal version detection
+# ==========================
+function detect_versions {
+    UBUNTU_VERSION=$(lsb_release -sr)
+
+    if dpkg --compare-versions "$UBUNTU_VERSION" lt "18.04"; then
+        echo -e "${RED} Ubuntu $UBUNTU_VERSION is not supported. Minimum required: 18.04 LTS.${NC}"
+        exit 1
+    fi
+
+    if dpkg --compare-versions "$UBUNTU_VERSION" ge "22.04"; then
+        echo -e "${RED} This script is for Ubuntu 18.04 or 20.04 only. Use Zentyal 8.0 for 22.04.${NC}"
+        exit 1
+    fi
+
+    if dpkg --compare-versions "$UBUNTU_VERSION" lt "20.04"; then
+        ZEN_VER='6.2'
+        ZEN_REPO_KEY="http://keys.zentyal.org/zentyal-${ZEN_VER}-packages.asc"
+        ZEN_REPO_URL="deb http://archive.zentyal.org/zentyal ${ZEN_VER} main extra"
+        UBUNTU_VER='Ubuntu 18.04'
+    else
+        ZEN_VER='7.0'
+        ZEN_REPO_KEY="http://keys.zentyal.org/zentyal-${ZEN_VER}-packages.asc"
+        ZEN_REPO_URL="deb http://packages.zentyal.org/zentyal ${ZEN_VER} main extra"
+        UBUNTU_VER='Ubuntu 20.04'
+    fi
+}
+
+# ==========================
+# Requirement checks
+# ==========================
+function check_ubuntu {
+    echo -e "\n${GREEN} - Checking Ubuntu version...${NC}"
+    detect_versions
+    echo -e "${GREEN}${BOLD}...OK${NC}${NORM}\n"
+}
+
+function check_broken_packages {
+    echo -e "${GREEN} - Checking for broken packages...${NC}"
+    if [[ $(dpkg -l | egrep -v '^ii|rc' | awk '{if(NR>5)print}' | wc -l) -gt 0 ]]; then
+        echo -e "${RED}  You have broken packages, trying to repair.${NC}"
+        for i in {1..10}; do DEBIAN_FRONTEND=noninteractive dpkg --configure -a; done
+        if [[ $(dpkg -l | egrep -v '^ii|rc' | awk '{if(NR>5)print}' | wc -l) -gt 0 ]]; then
+            echo -e "${RED}  Couldn't fix the broken packages.${NC}"
+            exit 1
+        fi
+        echo -e "${GREEN} Broken packages fixed. ${NORM}\n"
+    fi
+    echo -e "${GREEN}${BOLD}...OK${NC}${NORM}\n"
+}
+
+function check_available_packages {
+    echo -e "${GREEN} - Checking if the system is up-to-date...${NC}"
+    apt-get -qq update
+    if [[ $(apt list --upgradable 2> /dev/null | wc -l) -gt 1 ]]; then
+        echo -e "${RED}  Your server isn't up-to-date.${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}${BOLD}...OK${NC}${NORM}\n"
+}
+
+function check_disk_space {
+    echo -e "${GREEN} - Checking for available disk space...${NC}"
+    if [ $(df /boot | tail -1 | awk '{print $4}') -lt ${BOOT_SPACE} ]; then
+        echo -e "${RED}  Upgrade cannot be performed due to low disk space (less than 50MB available on /boot)${NC}"
+        exit 1
+    fi
+    for partition in / /var; do
+        if [ $(df ${partition} | tail -1 | awk '{print $4}') -lt ${SYSTEM_SPACE} ]; then
+            echo -e "${RED}  Upgrade cannot be performed due to low partition space (less than 350MB available on '${partition}')${NC}"
+            exit 1
+        fi
+    done
+    echo -e "${GREEN}${BOLD}...OK${NC}${NORM}\n"
+}
+
+function check_connection {
+    local CHECK_DOMAIN='google.com'
+    echo -e "${GREEN} - Checking the Internet connection...${NC}"
+    if ! ping -4 -W 15 -q -c 5 ${CHECK_DOMAIN} > /dev/null; then
+        echo -e "${RED}  There are issues with the Internet resolution.${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}${BOLD}...OK${NC}${NORM}\n"
+}
+
+function check_webadmin_port {
+    echo -e "${GREEN} - Checking Webadmin 8443/tcp port...${NC}"
+    if ss -tunpl | grep -q '8443'; then
+        echo -e "${RED}  The port 8443/tcp is already in use.${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}${BOLD}...OK${NC}${NORM}\n"
+}
+
+function check_nic_names {
+    echo -e "${GREEN} - Checking network interface names...${NC}"
+    interface_names=$(ip -o link show | awk -F': ' '{print $2}' | egrep 'eth' || true)
+    if [ -z "${interface_names}" ]; then
+        echo -e "${YELLOW}  No 'eth' interfaces found. If using predictable interface names, this is fine.${NC}"
+    fi
+    echo -e "${GREEN}${BOLD}...OK${NC}${NORM}\n"
+}
+
+# ==========================
+# Repository setup
+# ==========================
+function configure_repos {
+    echo -e "${GREEN} - Configuring repositories...${NC}\n"
+
+    for url in packages.zentyal.com packages.zentyal.org archive.zentyal.org archive.zentyal.com; do
+        sed -i "/${url}/d" /etc/apt/sources.list
+        for repo in $(find /etc/apt/sources.list.d/ -type f); do
+            sed -i "/${url}/d" ${repo}
+        done
+    done
+
+    wget -T 10 -q ${ZEN_REPO_KEY} -O /etc/apt/trusted.gpg.d/zentyal-packages.asc
+    echo -e "\n${ZEN_REPO_URL}" >> /etc/apt/sources.list
+
+    # Suricata repository
+    if ! grep -qR 'http://ppa.launchpad.net/oisf/suricata-stable/ubuntu' /etc/apt/sources.list*; then
+        echo "deb http://ppa.launchpad.net/oisf/suricata-stable/ubuntu $(lsb_release -sc) main" >> /etc/apt/sources.list
+        apt-key adv --keyserver keyserver.ubuntu.com --recv-keys ${SURI_KEY}
+    fi
+
+    apt-get -qq update
+    echo -e "${GREEN}${BOLD}...OK${NC}${NORM}\n"
+}
+
+# ==========================
+# Zentyal installation
+# ==========================
+function install_zentyal {
+    echo -e "${GREEN} - Installing Zentyal...${NC}\n"
+    apt-get remove -y netplan.io
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends zentyal
+    touch /var/lib/zentyal/.commercial-edition
+    touch /var/lib/zentyal/.license
+    echo -e "${GREEN}${BOLD}...OK${NC}${NORM}\n"
+}
+
+# ==========================
+# Graphical environment
+# ==========================
+function install_graphical_environment {
+    echo -e "${GREEN} - Installing graphical environment...${NC}\n"
+    echo 'lxdm shared/default-x-display-manager select lxdm' | debconf-set-selections
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends zenbuntu-desktop
+    systemctl enable zentyal.lxdm
+    echo -e "${GREEN}${BOLD}...OK${NC}${NORM}\n"
+}
+
+# ==========================
+# Post-install tasks
+# ==========================
+function post_install {
+    echo -e "${GREEN} - Performing post-installation tasks...${NC}\n"
+    # Example: disable cloud-init
+    touch /etc/cloud/cloud-init.disabled
+    echo -e "${GREEN}${BOLD}...OK${NC}${NORM}\n"
+}
+
+# ==========================
+# MAIN MENU
+# ==========================
+function show_menu {
+  clear
+  echo "======================================================"
+  echo "       Zentyal 7.0 Installer - Ubuntu 20.04 or later"
+  echo "======================================================"
+  echo "1) Check system requirements"
+  echo "2) Configure repositories"
+  echo "3) Install Zentyal"
+  echo "4) Install graphical environment (optional)"
+  echo "5) Post-installation tasks"
+  echo "6) Run everything in order"
+  echo "0) Exit"
+  echo "============================================"
+}
+
+# ==========================
+# MENU LOOP
+# ==========================
+if [[ $EUID -ne 0 ]]; then
+    echo -e "${RED}  The script must be run with 'sudo'.${NC}"
+    exit 1
+fi
+
+while true; do
+    show_menu
+    read -p "Select an option: " option
+    case $option in
+        1)
+            check_ubuntu
+            check_broken_packages
+            check_available_packages
+            check_disk_space
+            check_connection
+            check_webadmin_port
+            check_nic_names
+            ;;
+        2) configure_repos ;;
+        3) install_zentyal ;;
+        4)
+            read -p "Install graphical environment? (y/n) [n]: " choice
+            choice=${choice:-n}
+            if [[ "$choice" =~ ^[Yy]$ ]]; then
+                install_graphical_environment
+            fi
+            ;;
+        5) post_install ;;
+        6)
+            check_ubuntu
+            check_broken_packages
+            check_available_packages
+            check_disk_space
+            check_connection
+            check_webadmin_port
+            check_nic_names
+            configure_repos
+            install_zentyal
+            read -p "Install graphical environment? (y/n) [n]: " choice
+            choice=${choice:-n}
+            if [[ "$choice" =~ ^[Yy]$ ]]; then
+                install_graphical_environment
+            fi
+            post_install
+            echo -e "\n${GREEN}${BOLD}Zentyal installation completed. Access: https://<SERVER-IP>:8443${NC}${NORM}\n"
+            ;;
+        0)
+            echo "Exiting..."
+            exit 0
+            ;;
+        *)
+            echo "Invalid option."
+            ;;
+    esac
+    read -p "Press Enter to continue..." enter
+done
+
+}
 
 
 configure_firewall() {
@@ -4468,9 +4728,11 @@ while true; do
     echo "20) Setup OpenVPN"
     echo "21) Setup Wireguard VPN"
     echo "22) Install Preboot eXecution Environment (PXE) "
-	echo "23) Reboot System "
-	echo "24) Shutdown System "
-	echo "25) Exit "
+	echo "23) Install Zentyal on Ubuntu 18.04 or Ubuntu 20.04"
+	echo "24) Install Zentyal on Ubuntu 22.04 or lastest"
+	echo "25) Reboot System "
+	echo "26) Shutdown System "
+	echo "27) Exit "
     read -p "Choose an option: " opcion
 
     # case for execute the fuctions
@@ -4497,9 +4759,11 @@ while true; do
  	20) setup_open_vpn;;
   	21) setup_wireguard_vpn;;
 	22) PXE_Setup;;
-	23) reboot_system;;
-	24) shutdown_system;;
-    25) echo "Exiting. Goodbye!"; break ;;
+	23) zentyal_70_setup;;
+	24) zentyal_80_setup;;
+	25) reboot_system ;;
+	26) shutdown_system ;;
+    27) echo "Exiting. Goodbye!"; break ;;
         *) echo "Invalid option." ;;
     esac
 done
