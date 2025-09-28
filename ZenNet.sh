@@ -261,7 +261,7 @@ while true; do
       ;;
     0)
       echo "Exiting..."
-      exit 0
+      exit 1
       ;;
     *)
       echo "Invalid option."
