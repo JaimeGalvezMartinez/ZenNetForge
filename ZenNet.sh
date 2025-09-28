@@ -425,7 +425,7 @@ function post_install {
 function show_menu {
   clear
   echo "======================================================"
-  echo "       Zentyal 7.0 Installer - Ubuntu 20.04 or later"
+  echo "       Zentyal Installer - Ubuntu 18.04 or 20.04 only"
   echo "======================================================"
   echo "1) Check system requirements"
   echo "2) Configure repositories"
@@ -4728,7 +4728,7 @@ while true; do
     echo "20) Setup OpenVPN"
     echo "21) Setup Wireguard VPN"
     echo "22) Install Preboot eXecution Environment (PXE) "
-	echo "23) Install Zentyal on Ubuntu 18.04 or Ubuntu 20.04"
+	echo "23) Install Zentyal on Ubuntu 18.04 or Ubuntu 20.04 only"
 	echo "24) Install Zentyal on Ubuntu 22.04 or lastest"
 	echo "25) Reboot System "
 	echo "26) Shutdown System "
