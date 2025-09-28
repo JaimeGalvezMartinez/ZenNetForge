@@ -91,24 +91,18 @@ function check_connection {
   echo -e "${GREEN}${BOLD}...OK${NC}${NORM}";echo
 }
 
-function check_webadmin_port {
-  echo -e "\n${GREEN} - Checking Webadmin port 8443...${NC}"
-  if ss -lnt | grep -q ':8443'; then
-      echo -e "${RED} Port 8443 is already in use.${NC}"
-      exit 1
-  fi
-  echo -e "${GREEN}${BOLD}...OK${NC}${NORM}";echo
-}
-
 function check_nic_names {
   echo -e "\n${GREEN} - Checking network interface names...${NC}"
-  if ! ip -o link show | grep -q 'eth[0-9]'; then
-      echo -e "${RED} Interfaces are not using the old ethX naming.${NC}"
-      echo -e "If you want to continue, set: OLD_NIC_NAMING=false"
-      exit 1
+
+  if ip -o link show | grep -q '^.*: eth[0-9]:'; then
+      echo -e "${YELLOW} Warning: Old-style interface detected (ethX).${NC}"
+      echo -e "          Consider using modern predictable names like ens160, enp3s0, etc."
+      echo
+  else
+      echo -e "${GREEN}${BOLD}...OK (modern interface naming detected)${NC}${NORM}"; echo
   fi
-  echo -e "${GREEN}${BOLD}...OK${NC}${NORM}";echo
 }
+
 
 # ==========================
 # INSTALLATION FUNCTIONS
