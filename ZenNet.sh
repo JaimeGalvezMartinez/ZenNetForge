@@ -16,6 +16,89 @@ fi
 
 setup_autofirmed_https () {
 
+# Script to create a self-signed certificate and automatically configure Apache
+
+echo "=== HTTPS configuration with self-signed certificate ==="
+
+# === Ask for domain ===
+read -p "Enter the domain name (e.g., mydomain.com): " DOMAIN
+
+# === Ask for certificate metadata ===
+read -p "Country (C) [e.g., US]: " COUNTRY
+read -p "State/Province (ST) [e.g., California]: " STATE
+read -p "City/Locality (L) [e.g., San Francisco]: " LOCALITY
+read -p "Organization (O) [e.g., MyCompany]: " ORGANIZATION
+read -p "Organizational Unit (OU) [e.g., IT]: " ORG_UNIT
+read -p "Email (e.g., admin@$DOMAIN): " EMAIL
+
+# === Ask for DocumentRoot ===
+read -p "Enter the DocumentRoot directory (e.g., /var/www/html): " DOCROOT
+
+# === File paths ===
+CERT_DIR="/etc/ssl/certs"
+KEY_DIR="/etc/ssl/private"
+CERT_FILE="$CERT_DIR/${DOMAIN}.crt"
+KEY_FILE="$KEY_DIR/${DOMAIN}.key"
+VHOST_FILE="/etc/apache2/sites-available/${DOMAIN}-ssl.conf"
+
+# === Create directories if they don't exist ===
+sudo mkdir -p $CERT_DIR
+sudo mkdir -p $KEY_DIR
+sudo mkdir -p $DOCROOT
+
+echo "🔑 Generating self-signed certificate for $DOMAIN ..."
+
+# === Generate self-signed certificate ===
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout "$KEY_FILE" \
+  -out "$CERT_FILE" \
+  -subj "/C=$COUNTRY/ST=$STATE/L=$LOCALITY/O=$ORGANIZATION/OU=$ORG_UNIT/CN=$DOMAIN/emailAddress=$EMAIL"
+
+# Adjust permissions
+sudo chmod 600 "$KEY_FILE"
+sudo chmod 644 "$CERT_FILE"
+
+echo "📜 Certificate generated:"
+echo "   - Certificate: $CERT_FILE"
+echo "   - Private key: $KEY_FILE"
+
+# === Enable Apache SSL module ===
+echo "⚙️ Enabling SSL module in Apache..."
+sudo a2enmod ssl
+
+# === Create SSL VirtualHost ===
+echo "🌐 Creating HTTPS VirtualHost for $DOMAIN ..."
+
+sudo bash -c "cat > $VHOST_FILE" <<EOF
+<VirtualHost *:443>
+    ServerName $DOMAIN
+    DocumentRoot $DOCROOT
+
+    SSLEngine on
+    SSLCertificateFile $CERT_FILE
+    SSLCertificateKeyFile $KEY_FILE
+
+    <Directory $DOCROOT>
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    ErrorLog \${APACHE_LOG_DIR}/${DOMAIN}_error.log
+    CustomLog \${APACHE_LOG_DIR}/${DOMAIN}_access.log combined
+</VirtualHost>
+EOF
+
+# === Enable VirtualHost ===
+echo "✅ Enabling VirtualHost..."
+sudo a2ensite "${DOMAIN}-ssl.conf"
+
+# === Reload Apache ===
+echo "🔄 Restarting Apache..."
+sudo systemctl reload apache2
+
+echo "🎉 Configuration complete. You can now access https://$DOMAIN/"
+
 
 }
 
@@ -4507,8 +4590,9 @@ while true; do
     echo "21) Setup Wireguard VPN"
     echo "22) Install Preboot eXecution Environment (PXE) "
 	echo "23) Install Zentyal on Ubuntu 22.04 or lastest"
-	echo "24) Reboot System "
-	echo "25) Shutdown System "
+	echo "24) Autofirmed TLS/SSL Setup"
+	echo "25) Reboot System "
+	echo "26) Shutdown System "
 	echo "26) Exit "
     read -p "Choose an option: " opcion
 
@@ -4537,9 +4621,10 @@ while true; do
   	21) setup_wireguard_vpn;;
 	22) PXE_Setup;;
 	23) zentyal_80_setup;;
-	24) reboot_system ;;
-	25) shutdown_system ;;
-    26) echo "Exiting. Goodbye!"; break ;;
+	24) setup_autofirmed_https;;
+	25) reboot_system ;;
+	26) shutdown_system ;;
+    27) echo "Exiting. Goodbye!"; break ;;
         *) echo "Invalid option." ;;
     esac
 done
