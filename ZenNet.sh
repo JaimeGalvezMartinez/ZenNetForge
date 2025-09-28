@@ -14,7 +14,8 @@ if [ $EUID -ne 0 ]; then
    exit 1
 fi
 
-setup () {
+setup_autofirmed_https () {
+
 
 }
 
