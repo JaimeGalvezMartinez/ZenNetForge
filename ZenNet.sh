@@ -237,7 +237,7 @@ function configure_repos {
   echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu jammy stable" > /etc/apt/sources.list.d/docker.list
 
   # Repositorio de Firefox (Mozillateam PPA)
-  add-apt-repository -y ppa:mozillateam/ppa
+  add-apt repository -y ppa:mozillateam/ppa
 
   # Preferencia para que Firefox use siempre el PPA
   cat <<EOF >/etc/apt/preferences.d/mozilla-firefox
