@@ -25,8 +25,8 @@ read -p "Enter the domain name (e.g., mydomain.com): " DOMAIN
 
 # === Ask for certificate metadata ===
 read -p "Country (C) [e.g., US]: " COUNTRY
-read -p "State/Province (ST) [e.g., California]: " STATE
-read -p "City/Locality (L) [e.g., San Francisco]: " LOCALITY
+read -p "State/Province (ST) [e.g., Madrid]: " STATE
+read -p "City/Locality (L) [e.g., Madrid]: " LOCALITY
 read -p "Organization (O) [e.g., MyCompany]: " ORGANIZATION
 read -p "Organizational Unit (OU) [e.g., IT]: " ORG_UNIT
 read -p "Email (e.g., admin@$DOMAIN): " EMAIL
@@ -70,6 +70,13 @@ sudo a2enmod ssl
 echo "🌐 Creating HTTPS VirtualHost for $DOMAIN ..."
 
 sudo bash -c "cat > $VHOST_FILE" <<EOF
+# Redirección de HTTP a HTTPS
+<VirtualHost *:80>
+    ServerName $DOMAIN
+    Redirect permanent / https://$DOMAIN/
+</VirtualHost>
+
+# VirtualHost principal en HTTPS
 <VirtualHost *:443>
     ServerName $DOMAIN
     DocumentRoot $DOCROOT
@@ -78,16 +85,32 @@ sudo bash -c "cat > $VHOST_FILE" <<EOF
     SSLCertificateFile $CERT_FILE
     SSLCertificateKeyFile $KEY_FILE
 
+    # Protocolos y cifrados seguros
+    SSLProtocol all -SSLv2 -SSLv3 -TLSv1 -TLSv1.1
+    SSLCipherSuite HIGH:!aNULL:!MD5
+    SSLHonorCipherOrder on
+
     <Directory $DOCROOT>
-        Options Indexes FollowSymLinks
+        Options -Indexes +FollowSymLinks
         AllowOverride All
         Require all granted
     </Directory>
+
+    # Cabeceras de seguridad
+    <IfModule mod_headers.c>
+        Header always set Strict-Transport-Security "max-age=15552000; includeSubDomains; preload"
+        Header always set Referrer-Policy "no-referrer"
+        Header always set X-Content-Type-Options "nosniff"
+        Header always set X-Frame-Options "SAMEORIGIN"
+        Header always set X-XSS-Protection "1; mode=block"
+        Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    </IfModule>
 
     ErrorLog \${APACHE_LOG_DIR}/${DOMAIN}_error.log
     CustomLog \${APACHE_LOG_DIR}/${DOMAIN}_access.log combined
 </VirtualHost>
 EOF
+
 
 # === Enable VirtualHost ===
 echo "✅ Enabling VirtualHost..."
