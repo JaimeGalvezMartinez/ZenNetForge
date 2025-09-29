@@ -70,13 +70,13 @@ sudo a2enmod ssl
 echo "🌐 Creating HTTPS VirtualHost for $DOMAIN ..."
 
 sudo bash -c "cat > $VHOST_FILE" <<EOF
-# Redirección de HTTP a HTTPS
+# Redirect HTTP to HTTPS
 <VirtualHost *:80>
     ServerName $DOMAIN
     Redirect permanent / https://$DOMAIN/
 </VirtualHost>
 
-# VirtualHost principal en HTTPS
+# VirtualHost on HTTTPS
 <VirtualHost *:443>
     ServerName $DOMAIN
     DocumentRoot $DOCROOT
@@ -90,13 +90,14 @@ sudo bash -c "cat > $VHOST_FILE" <<EOF
     SSLCipherSuite HIGH:!aNULL:!MD5
     SSLHonorCipherOrder on
 
+# deny subdirectory listing
     <Directory $DOCROOT>
         Options -Indexes +FollowSymLinks
         AllowOverride All
         Require all granted
     </Directory>
 
-    # Cabeceras de seguridad
+    # Security Modules
     <IfModule mod_headers.c>
         Header always set Strict-Transport-Security "max-age=15552000; includeSubDomains; preload"
         Header always set Referrer-Policy "no-referrer"
