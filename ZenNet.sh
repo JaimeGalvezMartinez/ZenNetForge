@@ -236,8 +236,8 @@ function configure_repos {
   curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
   echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu jammy stable" > /etc/apt/sources.list.d/docker.list
 
-  # Repositorio de Firefox (Mozillateam PPA)
-  add-apt repository -y ppa:mozillateam/ppa
+  sudo add-apt-repository -y ppa:mozillateam/ppa
+sudo apt update
 
   # Preferencia para que Firefox use siempre el PPA
   cat <<EOF >/etc/apt/preferences.d/mozilla-firefox
@@ -251,6 +251,11 @@ EOF
 
 function install_zentyal {
 # Function to install Zentyal Server
+
+echo -e "\e[33mWarning\e[0m"
+echo
+echo "It is highly recommended that no additional packages such as MySQL are installed on the server;"
+echo "otherwise, the installation may fail and leave the server unstable."
 
   echo -e "${GREEN}>>> Starting Zentyal installation...${NC}\n"
 
