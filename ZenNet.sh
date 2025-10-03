@@ -24,9 +24,9 @@ echo "=== HTTPS configuration with self-signed certificate ==="
 read -p "Enter the domain name (e.g., mydomain.com): " DOMAIN
 
 # === Ask for certificate metadata ===
-read -p "Country (C) [e.g., US]: " COUNTRY
-read -p "State/Province (ST) [e.g., Madrid]: " STATE
-read -p "City/Locality (L) [e.g., Madrid]: " LOCALITY
+read -p "Country (C) [e.g., ES]: " COUNTRY
+read -p "State/Province (ST) [e.g., Toledo]: " STATE
+read -p "City/Locality (L) [e.g., Toledo]: " LOCALITY
 read -p "Organization (O) [e.g., IES-AZARQUIEL]: " ORGANIZATION
 read -p "Organizational Unit (OU) [e.g., IT]: " ORG_UNIT
 read -p "Email (e.g., admin@$DOMAIN): " EMAIL
