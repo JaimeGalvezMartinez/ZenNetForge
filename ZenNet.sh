@@ -10,7 +10,7 @@ clear
 
 # Check if exec in superuser permissions. 
 if [ $EUID -ne 0 ]; then
-   echo "This script must be run with superuser permissions (sudo)"
+   echo "This script must be run with superuser permissions (sudo su)"
    exit 1
 fi
 
