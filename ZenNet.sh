@@ -406,6 +406,9 @@ echo
 echo "It is highly recommended that no additional packages such as MySQL are installed on the server;"
 echo "otherwise, the installation may fail and leave the server unstable."
 
+read -rp "Continue with installation? (y/n): " CONFIRM
+[[ "$CONFIRM" =~ ^[yY]$ ]] || { echo "❌ Installation cancelled."; exit 1; }
+
   echo -e "${GREEN}>>> Starting Zentyal installation...${NC}\n"
 
   # Update package index
