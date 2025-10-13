@@ -16,7 +16,7 @@ fi
 
 setup_vaultwarden_in_docker () {
 
-#!/bin/bash
+
 set -e
 
 echo "=============================================="
@@ -37,8 +37,67 @@ HTTP_PORT_HOST=${HTTP_PORT_HOST:-8081}
 read -rp "🔒 HTTPS host port to expose (default 8445): " HTTPS_PORT
 HTTPS_PORT=${HTTPS_PORT:-8445}
 
-read -rp "🗝️  Admin token (default 'supersecret'): " ADMIN_TOKEN
-ADMIN_TOKEN=${ADMIN_TOKEN:-supersecret}
+# Check for OpenSSL
+command -v openssl >/dev/null 2>&1 || {
+  echo "⚠️ OpenSSL not found. Installing..."
+  sudo apt update && sudo apt install -y openssl
+}
+
+# Update and upgrade packages
+sudo apt update && sudo apt upgrade -y
+
+# Ensure vault directory exists
+mkdir -p "$VAULT_DIR"
+
+echo "✅ OpenSSL installed and vault directory ready at: $VAULT_DIR"
+
+
+# === TOKEN GENERATION ===
+generate_token() {
+  # Generates a secure 12-character token (alphanumeric + symbols)
+  openssl rand -base64 9 | tr -dc 'A-Za-z0-9@#%&_+=' | head -c 12
+}
+
+while true; do
+  read -rsp "🗝️  Admin token (leave empty to generate a random one): " ADMIN_TOKEN
+  echo
+  if [ -z "$ADMIN_TOKEN" ]; then
+    ADMIN_TOKEN=$(generate_token)
+    echo "🔒 Automatically generated token: $ADMIN_TOKEN"
+    echo "⚠️  Please copy and store this token safely."
+    break
+  else
+    read -rsp "🔁 Confirm admin token: " CONFIRM_TOKEN
+    echo
+    if [ "$ADMIN_TOKEN" == "$CONFIRM_TOKEN" ]; then
+      echo "✅ Token confirmed successfully!"
+      break
+    else
+      echo "❌ Tokens do not match. Please try again."
+    fi
+  fi
+done
+
+# === SSL METADATA INPUT ===
+echo ""
+echo "🔧 SSL Certificate Metadata (press Enter to use defaults):"
+read -rp "🌍 Country Code (default ES): " SSL_COUNTRY
+SSL_COUNTRY=${SSL_COUNTRY:-ES}
+
+read -rp "🏙️  State or Province (default State): " SSL_STATE
+SSL_STATE=${SSL_STATE:-Castilla-La Mancha}
+
+read -rp "🏡 City (default Toledo): " SSL_CITY
+SSL_CITY=${SSL_CITY:-Toledo}
+
+read -rp "🏢 Organization (default INTRANET): " SSL_ORG
+SSL_ORG=${SSL_ORG:-INTRANET}
+
+# Capture The main IP of the system
+SSL_CN=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}')
+
+# And main IP saves in the variable SSL_CN 
+echo " 🌐 Common Name / Domain: $SSL_CN"
 
 SSL_DIR="$VAULT_DIR/ssl"
 NGINX_CONF="$VAULT_DIR/nginx.conf"
@@ -50,7 +109,15 @@ echo "📂 Folder:            $VAULT_DIR"
 echo "🔢 HTTP internal:     $HTTP_PORT_INTERNAL"
 echo "🔢 HTTP host port:    $HTTP_PORT_HOST"
 echo "🔒 HTTPS host port:   $HTTPS_PORT"
-echo "🗝️  Admin token:       $ADMIN_TOKEN"
+echo "🗝️  Admin token:      $ADMIN_TOKEN"
+echo "⚠️  Please copy and store this token safely."
+echo ""
+echo "📜 SSL Certificate Info:"
+echo "   Country:           $SSL_COUNTRY"
+echo "   State:             $SSL_STATE"
+echo "   City:              $SSL_CITY"
+echo "   Organization:      $SSL_ORG"
+echo "   Common Name:       $SSL_CN"
 echo "----------------------------------------------"
 read -rp "Continue with installation? (y/n): " CONFIRM
 [[ "$CONFIRM" =~ ^[yY]$ ]] || { echo "❌ Installation cancelled."; exit 1; }
@@ -76,10 +143,10 @@ install_docker() {
 generate_certificate() {
     echo "🔒 Generating self-signed certificate..."
     mkdir -p "$SSL_DIR"
-    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
         -keyout "$SSL_DIR/selfsigned.key" \
         -out "$SSL_DIR/selfsigned.crt" \
-        -subj "/C=US/ST=CA/L=Local/O=Vaultwarden/CN=localhost"
+        -subj "/C=$SSL_COUNTRY/ST=$SSL_STATE/L=$SSL_CITY/O=$SSL_ORG/CN=$SSL_CN"
 }
 
 create_nginx_conf() {
@@ -88,7 +155,7 @@ create_nginx_conf() {
     cat > "$NGINX_CONF" <<EOF
 server {
     listen 443 ssl;
-    server_name localhost;
+    server_name $SSL_CN;
 
     ssl_certificate /etc/ssl/private/selfsigned.crt;
     ssl_certificate_key /etc/ssl/private/selfsigned.key;
@@ -103,8 +170,8 @@ server {
 }
 
 server {
-    listen $HTTP_PORT_HOST;
-    server_name localhost;
+    listen 80;
+    server_name $SSL_CN;
     return 301 https://\$host\$request_uri;
 }
 EOF
@@ -131,7 +198,7 @@ services:
       - vaultwarden
     ports:
       - "$HTTPS_PORT:443"
-      - "$HTTP_PORT_HOST:$HTTP_PORT_HOST"
+      - "$HTTP_PORT_HOST:80"
     volumes:
       - $SSL_DIR:/etc/ssl/private:ro
       - $NGINX_CONF:/etc/nginx/conf.d/default.conf:ro
@@ -155,11 +222,15 @@ create_compose
 start_containers
 
 echo ""
-echo "✅ Installation completed successfully."
-echo "🌐 Vaultwarden available at:"
-echo "  - HTTPS: https://localhost:$HTTPS_PORT (self-signed)"
-echo "  - HTTP redirect: http://localhost:$HTTP_PORT_HOST"
-echo "⚠️ Remember to accept the self-signed certificate in your browser."
+echo "✅ Installation completed successfully!"
+echo "----------------------------------------------"
+echo "🌐 Access Vaultwarden at:"
+echo "   🔒 HTTPS: https://$SSL_CN:$HTTPS_PORT"
+echo "   🔁 HTTP redirect: http://$SSL_CN:$HTTP_PORT_HOST"
+echo ""
+echo "🗝️  Admin Token: $ADMIN_TOKEN"
+echo "⚠️  Please copy and store this token safely. — it will not be shown again!"
+echo "----------------------------------------------"
 
 }
 
@@ -4767,8 +4838,8 @@ while true; do
     echo "17) Configure ACL "
     echo "18) Cerbot Management "
     echo "19) Make Backup or restore backup from ssh server "
-    echo "20) Setup OpenVPN"
-    echo "21) Setup Wireguard VPN"
+    echo "20) Setup OpenVPN (integration with Alpine Linux)"
+    echo "21) Setup Wireguard VPN (integration with Alpine Linux)"
     echo "22) Install Preboot eXecution Environment (PXE) "
 	echo "23) Install Zentyal on Ubuntu 22.04 or lastest"
 	echo "24) Self-Signed TLS/SSL Setup"
