@@ -17,20 +17,13 @@ Clone the Repository (or copy the script directly from this repository):
 
 ```bash
 git clone https://github.com/JaimeGalvezMartinez/ZenNetForge.git
-```
-```bash
+
 cd ZenNetForge
-```
-Make the Script Executable:
 
-```bash
 chmod +x ZenNet.sh
+
+sudo su ./ZenNet.sh
 ```
-
-Run the Script as Root:
-
-    sudo ./ZenNet.sh
-
 
 ## License
 
