@@ -4675,7 +4675,9 @@ reboot_system() {
 
 	reboot now
 	echo "The system will reboot"
+	
 }
+
 shutdown_system() {
 
 		shutdown now
