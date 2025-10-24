@@ -22,7 +22,10 @@ cd ZenNetForge
 
 chmod +x ZenNet.sh
 
-sudo su ./ZenNet.sh
+sudo su
+
+
+./ZenNet.sh
 ```
 
 ## License
