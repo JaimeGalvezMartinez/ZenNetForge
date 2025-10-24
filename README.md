@@ -24,7 +24,6 @@ chmod +x ZenNet.sh
 
 sudo su
 
-
 ./ZenNet.sh
 ```
 
