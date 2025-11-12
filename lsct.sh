@@ -26,11 +26,21 @@ setup_vaultwarden_in_docker () {
 
 set -e
 
-  
-    echo -e "${RED}${BOLD}==============================================${NC}"
-    echo -e "${GREEN}${BOLD}  🚀 Vaultwarden Installer with HTTPS Proxy${NC}"
-    echo -e "${RED}${BOLD}==============================================${NC}"
-    echo ""
+# Colores
+RED='\033[0;31m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m' # Sin color
+
+# Encabezado
+echo -e "${RED}${BOLD}==============================================${NC}"
+echo -e "${CYAN}${BOLD}🚀 Vaultwarden Installer with HTTPS Proxy${NC}"
+echo -e "${RED}${BOLD}==============================================${NC}"
+echo -e "${RED}${BOLD}==============================================${NC}"
+echo -e "${CYAN}${BOLD} Author: Jaime Galvez Martinez${NC}"
+echo -e "${CYAN}${BOLD} GitHub: github.com/JaimeGalvezMartinez${NC}"
+echo -e "${RED}${BOLD}==============================================${NC}"
+echo ""
 
 
 # === USER INPUT ===
