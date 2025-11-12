@@ -1856,7 +1856,7 @@ echo -e "Do you want to proceed with the installation? (y/n): "
 read -n 1 CONFIRM
 echo
 if [[ "$CONFIRM" != [yY] ]]; then
-    echo -e "${GREEN}"Installation canceled."
+    echo -e "${GREEN}Installation canceled."
     exit 1
 fi
 
@@ -1877,7 +1877,7 @@ echo -e "${GREEN}Installing MariaDB..."
 apt install mariadb-server -y
 
 # Create database and user for Nextcloud
-echo -e "${GREEN}"Configuring database for Nextcloud..."
+echo -e "${GREEN}Configuring database for Nextcloud..."
 mysql -u root -e "CREATE DATABASE ${DB_NAME};"
 mysql -u root -e "CREATE USER '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';"
 mysql -u root -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';"
