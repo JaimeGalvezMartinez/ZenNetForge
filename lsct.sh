@@ -1,5 +1,3 @@
-
- 
 #!/bin/bash
 # Version 3.2 - november 2025
 # Developer: Jaime Galvez (TheHellishPandaa)
@@ -112,7 +110,7 @@ SSL_DIR="$VAULT_DIR/ssl"
 NGINX_CONF="$VAULT_DIR/nginx.conf"
 
 echo ""
- echo -e "${GREEN}${BOLD}"Configuration summary:"
+ echo -e ${GREEN}${BOLD}"Configuration summary:"
 echo "----------------------------------------------"
 echo "📂 Folder:            $VAULT_DIR"
 echo "🔢 HTTP internal:     $HTTP_PORT_INTERNAL"
