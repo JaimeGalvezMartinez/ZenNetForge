@@ -1755,15 +1755,15 @@ echo "Restarting SSH service..."
 systemctl restart ssh || { echo "Failed to restart SSH service"; exit 1; }
 
 # Final message
-echo "SFTP setup complete. User $SFTP_USER can now connect using SFTP."
-echo -e ${GREEN}"-----------------------------------------------------------------------------------"
-echo -e ${GREEN}"To connect using FileZilla:"
-echo -e ${GREEN}"- Host: Your server's IP address"
-echo -e ${GREEN}"- Username: $SFTP_USER"
-echo -e ${GREEN}"- Password: (the one you set)"
-echo -e ${GREEN}"- Default Port: 22"
-echo -e ${GREEN}"- Protocol: SFTP - SSH File Transfer Protocol"
-echo -e ${GREEN}"-----------------------------------------------------------------------------------"
+echo -e "${GREEN}SFTP setup complete. User $SFTP_USER can now connect using SFTP.${NC}"
+echo -e "${GREEN}-----------------------------------------------------------------------------------${NC}"
+echo -e "${GREEN}To connect using FileZilla:${NC}"
+echo -e "${GREEN}- Host: Your server's IP address${NC}"
+echo -e "${GREEN}- Username: $SFTP_USER${NC}"
+echo -e "${GREEN}- Password: (the one you set)${NC}"
+echo -e "${GREEN}- Default Port: 22${NC}"
+echo -e "${GREEN}- Protocol: SFTP - SSH File Transfer Protocol${NC}"
+echo -e "${GREEN}-----------------------------------------------------------------------------------${NC}"
 
 }
 # function to install Apache, PHP, MySQL server, MySQL client, Certbot, Bind9, Nextcloud, and required configurations to set up the server.
@@ -1772,14 +1772,14 @@ nextcloud_install(){
 
 # Interactive menu for capturing values
 
-echo "================================================================="
-echo "================== Nextcloud Installation ======================="
-echo "================================================================="
-echo "================================================================="
-echo "================= by Jaime Galvez Martinez  ====================="
-echo "================ GitHub: Jaime Galvez Martinez =================="
-echo "================================================================="
-echo ""
+echo -e "${BLUE}${BOLD}=================================================================${NC}"
+    echo -e "${CYAN}${BOLD}================== Nextcloud Installation =======================${NC}"
+    echo -e "${BLUE}${BOLD}=================================================================${NC}"
+    echo -e "${BLUE}${BOLD}=================================================================${NC}"
+    echo -e "${CYAN}${BOLD}================= by Jaime Galvez Martinez  =====================${NC}"
+    echo -e "${CYAN}${BOLD}================ GitHub: Jaime Galvez Martinez ==================${NC}"
+    echo -e "${BLUE}${BOLD}=================================================================${NC}"
+    echo ""
 
 # Check if the user is root
 if [[ $EUID -ne 0 ]]; then
@@ -1788,8 +1788,8 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 # Prompt for Nextcloud version
-read -p "Which version of Nextcloud would you like to install? (Default: 28.0.0): " NEXTCLOUD_VERSION
-NEXTCLOUD_VERSION=${NEXTCLOUD_VERSION:-"28.0.0"}  # Default version if user inputs nothing
+read -p "Which version of Nextcloud would you like to install? (Default: 32.0.0): " NEXTCLOUD_VERSION
+NEXTCLOUD_VERSION=${NEXTCLOUD_VERSION:-"32.0.0"}  # Default version if user inputs nothing
 
 # Prompt for database name
 read -p "Enter the database name (default: nextcloud_db): " DB_NAME
@@ -1832,17 +1832,17 @@ NEXTCLOUD_PATH=${NEXTCLOUD_PATH:-"/var/www/html/nextcloud"}
 read -p "Enter the domain or IP to access Nextcloud: " DOMAIN
 
 # Configuration confirmation
+echo -e "${GREEN}${BOLD}========================================================${NC}"
+echo -e "${GREEN}${BOLD}============ Configuration Summary =====================${NC}"
+echo -e "${GREEN}${BOLD}========================================================${NC}"
+echo -e "${GREEN}Nextcloud Version:     ${BOLD}$NEXTCLOUD_VERSION${NC}"
+echo -e "${GREEN}Database:              ${BOLD}$DB_NAME${NC}"
+echo -e "${GREEN}Database User:         ${BOLD}$DB_USER${NC}"
+echo -e "${GREEN}Installation Path:     ${BOLD}$NEXTCLOUD_PATH${NC}"
+echo -e "${GREEN}Data Directory:        ${BOLD}$DATA_DIRECTORY${NC}"
+echo -e "${GREEN}Domain or IP:          ${BOLD}$DOMAIN${NC}"
+echo -e "${GREEN}${BOLD}========================================================${NC}"
 
-echo -e "========================================================"
-echo -e "============ Configuration Summary ====================="
-echo -e "========================================================"
-echo -e "Nextcloud Version:     $NEXTCLOUD_VERSION"
-echo -e "Database:              $DB_NAME"
-echo -e "Database User:         $DB_USER"
-echo -e "Installation Path:     $NEXTCLOUD_PATH"
-echo -e "Data Directory:        $DATA_DIRECTORY"
-echo -e "Domain or IP:          $DOMAIN"
-echo -e "========================================================"
 
 echo -e "Do you want to proceed with the installation? (y/n): "
 
@@ -1850,7 +1850,7 @@ echo -e "Do you want to proceed with the installation? (y/n): "
 read -n 1 CONFIRM
 echo
 if [[ "$CONFIRM" != [yY] ]]; then
-    echo "Installation canceled."
+    echo -e "${GREEN}"Installation canceled."
     exit 1
 fi
 
@@ -1862,16 +1862,16 @@ echo "========================================================"
 apt update && apt upgrade -y
 
 # Install Apache
-echo "Installing Apache..."
+echo -e "${GREEN}Installing Apache..."
 apt install apache2 -y
 ufw allow 'Apache Full'
 
 # Install MariaDB
-echo "Installing MariaDB..."
+echo -e "${GREEN}Installing MariaDB..."
 apt install mariadb-server -y
 
 # Create database and user for Nextcloud
-echo "Configuring database for Nextcloud..."
+echo -e "${GREEN}"Configuring database for Nextcloud..."
 mysql -u root -e "CREATE DATABASE ${DB_NAME};"
 mysql -u root -e "CREATE USER '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';"
 mysql -u root -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';"
@@ -1881,11 +1881,11 @@ mysql -u root -e "FLUSH PRIVILEGES;"
 # mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';"
 
 # Install PHP and necessary modules
-echo "Installing PHP  and modules..."
+echo -e "${GREEN}Installing PHP  and modules..."
 sudo apt install -y php php-gd php-json php-mbstring php-curl php-xml php-zip php-mysql php-intl php-bz2 php-imagick php-fpm php-cli libapache2-mod-php php-sqlite3 php-pgsql
 
  # Create Data Directory
-    echo "Creating Data Directory..."
+    echo -e "${GREEN}Creating Data Directory..."
     if [[ ! -d "$DATA_DIRECTORY" ]]; then
         mkdir -p "$DATA_DIRECTORY"
         echo "Data directory created at: $DATA_DIRECTORY"
@@ -1924,9 +1924,9 @@ echo "Please access http://$DOMAIN/nextcloud to complete setup in the browser."
 moodle_install(){
 # Script that configure moodle 
 
-echo "----------------------------------------------"
-echo "-------------- MOODLE SETUP ------------------"
-echo "----------------------------------------------"
+echo -e "${GREEN}----------------------------------------------"
+echo -e "${GREEN}-------------- MOODLE SETUP ------------------"
+echo -e "${GREEN}----------------------------------------------"
 
 # Prompt for database name
 read -p "Enter the database name (default: moodle_db): " DB_NAME
@@ -1957,12 +1957,12 @@ while true; do
     if [ "$DB_PASSWORD" == "$DB_PASSWORD2" ]; then
     # If they match, confirm success and break out of the loop
     
-        echo "Password confirmed."
+        echo -e "${GREEN}${BOLD}Password confirmed."
         break
     else
      # If they don't match, show an error and prompt again
      
-        echo "Error: Passwords do not match. Please try again."
+        echo -e "${RED}${BOLD}Error: Passwords do not match. Please try again."
     fi
 done
 
@@ -1975,25 +1975,31 @@ MOODLE_PATH=${MOODLE_PATH:-"/var/www/html/moodle"}
 read -p "Enter the domain or IP to access Moodle: " DOMAIN
 
 
+# Colores
+GREEN='\033[0;32m'
+BOLD='\033[1m'
+NC='\033[0m' # Sin color
+
 # Configuration confirmation
 echo -e ""
-echo -e "========================================================"
-echo -e "============ Configuration Summary: ===================="
-echo -e "========================================================"
+echo -e "${GREEN}${BOLD}========================================================${NC}"
+echo -e "${GREEN}${BOLD}============ Configuration Summary ====================${NC}"
+echo -e "${GREEN}${BOLD}========================================================${NC}"
 echo -e ""
 
-echo "Database: $DB_NAME"
-echo "Database User: Root"
-echo "Installation Path: $MOODLE_PATH"
-echo "Domain or IP: $DOMAIN"
-echo "Data Directory: " $data_directory
-echo -e "Do you want to proceed with the installation? (y/n): "
+echo -e "${GREEN}Database: ${BOLD}$DB_NAME${NC}"
+echo -e "${GREEN}Database User: ${BOLD}Root${NC}"
+echo -e "${GREEN}Installation Path: ${BOLD}$MOODLE_PATH${NC}"
+echo -e "${GREEN}Domain or IP: ${BOLD}$DOMAIN${NC}"
+echo -e "${GREEN}Data Directory: ${BOLD}$data_directory${NC}"
+echo ""
 
 # Confirmation to proceed with the installation
-read -n 1 CONFIRM
+read -rp "$(echo -e ${GREEN}Do you want to proceed with the installation? (y/n): ${NC})" CONFIRM
 echo
-if [[ "$CONFIRM" != [yY] ]]; then
-    echo "Installation canceled."
+
+if [[ ! "$CONFIRM" =~ ^[yY]$ ]]; then
+    echo -e "${RED}Installation canceled.${NC}"
     exit 1
 fi
 
