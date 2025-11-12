@@ -89,7 +89,9 @@ done
 
 # === SSL METADATA INPUT ===
 echo ""
-echo -e ${GREEN}${BOLD} "🔧 SSL Certificate Metadata (press Enter to use defaults):"
+
+echo -e "${GREEN}${BOLD}🔧 SSL Certificate Metadata (press Enter to use defaults):${NC}"
+
 read -rp "🌍 Country Code (default ES): " SSL_COUNTRY
 SSL_COUNTRY=${SSL_COUNTRY:-ES}
 
@@ -111,8 +113,10 @@ echo " 🌐 Common Name / Domain: $SSL_CN"
 SSL_DIR="$VAULT_DIR/ssl"
 NGINX_CONF="$VAULT_DIR/nginx.conf"
 
+
+# ================= CONFIGURATION SUMMARY =================
 echo ""
- echo -e ${GREEN}${BOLD}"Configuration summary:"
+echo -e "${GREEN}${BOLD}Configuration summary:${NC}"
 echo "----------------------------------------------"
 echo "📂 Folder:            $VAULT_DIR"
 echo "🔢 HTTP internal:     $HTTP_PORT_INTERNAL"
@@ -128,10 +132,11 @@ echo "   City:              $SSL_CITY"
 echo "   Organization:      $SSL_ORG"
 echo "   Common Name:       $SSL_CN"
 echo "----------------------------------------------"
-read -rp "Continue with installation? (y/n): " CONFIRM
-[[ "$CONFIRM" =~ ^[yY]$ ]] || { echo "❌ Installation cancelled."; exit 1; }
 
-# === FUNCTIONS ===
+read -rp "Continue with installation? (y/n): " CONFIRM
+[[ "$CONFIRM" =~ ^[yY]$ ]] || { echo -e "${RED}❌ Installation cancelled.${NC}"; exit 1; }
+
+# ================= FUNCTIONS =================
 
 install_docker() {
     if ! command -v docker &>/dev/null; then
@@ -141,7 +146,7 @@ install_docker() {
         curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
         echo \
           "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
-          https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+          https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
         apt update && apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
         systemctl enable --now docker
     else
@@ -150,7 +155,7 @@ install_docker() {
 }
 
 generate_certificate() {
-    echo -e ${GREEEN}${BOLD} "🔒 Generating self-signed certificate..."
+    echo -e "${GREEN}${BOLD}🔒 Generating self-signed certificate...${NC}"
     mkdir -p "$SSL_DIR"
     openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
         -keyout "$SSL_DIR/selfsigned.key" \
@@ -187,9 +192,8 @@ EOF
 }
 
 create_compose() {
-    echo -e ${GREEN}${BOLD} "🧱 Creating docker-compose.yml..."
+    echo -e "${GREEN}${BOLD}🧱 Creating docker-compose.yml...${NC}"
     mkdir -p "$VAULT_DIR"
-
     cat > "$VAULT_DIR/docker-compose.yml" <<EOF
 services:
   vaultwarden:
@@ -550,7 +554,7 @@ function post_install {
 function show_menu {
   clear
   echo -e "${BLUE}${BOLD}===================================================================${NC}"
- echo -e "${CYAN}${BOLD}                        Zentyal 8.0 installer${NC}"
+  echo -e "${CYAN}${BOLD}                        Zentyal 8.0 installer${NC}"
   echo -e "${BLUE}${BOLD}===================================================================${NC}"
   echo "1) Check system requirements"
   echo "2) Configure repositories"
@@ -654,7 +658,7 @@ configure_firewall() {
         echo "7) Enable UFW"
         echo "8) Disable UFW"
         echo "9) Delete rule by name (e.g., 'Apache Full')"
-        echo -e ${RED}${BOLD}"0) Exit"
+        echo -e "${RED}${BOLD}0) Exit"
         echo "================================================================="
         read -rp "Choose an option: " option
 
