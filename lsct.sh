@@ -2075,6 +2075,7 @@ echo "Moodle installation complete."
 echo "Please access http://$DOMAIN/moodle to complete setup in the browser."
 echo "---------------------------------------------------------------------"
 }
+
 wp_install() {
 
 # Enable strict mode: stop script execution if any command fails
