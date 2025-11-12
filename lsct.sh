@@ -4697,10 +4697,9 @@ shutdown_system() {
 PXE_Setup () {
 
 
-# ================================
-# iVentoy PXE Installer & systemd
-# ================================
-
+echo -e "${BLUE}${BOLD}===================================================================${NC}"
+echo -e "${CYAN}${BOLD}                            iVentoy PXE Setup${NC}"
+ echo -e "${BLUE}${BOLD}===================================================================${NC}"
 # Colors for messages
 RED="\e[31m"
 GREEN="\e[32m"
