@@ -26,10 +26,12 @@ setup_vaultwarden_in_docker () {
 
 set -e
 
-echo -e ${RED}${BOLD}"=============================================="
-echo -e ${GREEN}${BOLD}"  🚀 Vaultwarden Installer with HTTPS Proxy"
-echo -e ${RED}${BOLD}"=============================================="
-echo ""
+  
+    echo -e "${RED}${BOLD}==============================================${NC}"
+    echo -e "${GREEN}${BOLD}  🚀 Vaultwarden Installer with HTTPS Proxy${NC}"
+    echo -e "${RED}${BOLD}==============================================${NC}"
+    echo ""
+
 
 # === USER INPUT ===
 read -rp "📁 Installation folder (default ~/vaultwarden-docker): " VAULT_DIR
