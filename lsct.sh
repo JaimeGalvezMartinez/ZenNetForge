@@ -1756,14 +1756,14 @@ systemctl restart ssh || { echo "Failed to restart SSH service"; exit 1; }
 
 # Final message
 echo "SFTP setup complete. User $SFTP_USER can now connect using SFTP."
-echo -e "${GREEN}"-----------------------------------------------------------------------------------"
-echo -e "${GREEN}"To connect using FileZilla:"
-echo -e "${GREEN}"- Host: Your server's IP address"
-echo -e "${GREEN}"- Username: $SFTP_USER"
-echo -e "${GREEN}"- Password: (the one you set)"
-echo -e "${GREEN}"- Default Port: 22"
-echo -e "${GREEN}"- Protocol: SFTP - SSH File Transfer Protocol"
-echo -e "${GREEN}"-----------------------------------------------------------------------------------"
+echo -e ${GREEN}"-----------------------------------------------------------------------------------"
+echo -e ${GREEN}"To connect using FileZilla:"
+echo -e ${GREEN}"- Host: Your server's IP address"
+echo -e ${GREEN}"- Username: $SFTP_USER"
+echo -e ${GREEN}"- Password: (the one you set)"
+echo -e ${GREEN}"- Default Port: 22"
+echo -e ${GREEN}"- Protocol: SFTP - SSH File Transfer Protocol"
+echo -e ${GREEN}"-----------------------------------------------------------------------------------"
 
 }
 # function to install Apache, PHP, MySQL server, MySQL client, Certbot, Bind9, Nextcloud, and required configurations to set up the server.
