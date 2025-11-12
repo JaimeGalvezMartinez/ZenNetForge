@@ -148,7 +148,7 @@ install_docker() {
 }
 
 generate_certificate() {
-    echo -e "${GREEEN}${BOLD} "🔒 Generating self-signed certificate..."
+    echo -e ${GREEEN}${BOLD} "🔒 Generating self-signed certificate..."
     mkdir -p "$SSL_DIR"
     openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
         -keyout "$SSL_DIR/selfsigned.key" \
