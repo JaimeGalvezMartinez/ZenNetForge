@@ -4869,8 +4869,9 @@ echo "1) Configure network interfaces"
 	echo "25) Install Vaultwarden with Docker + Reverse Nginx HTTPS with self-signed certificates"
 	echo "26) Reboot System "
 	echo "27) Shutdown System "
-	echo -e "${RED}${BOLD}0) Exit ${NC}"
-    read -p "Choose an option: " opcion
+	echo -e "${RED}${BOLD}0) Exit${NC}"
+read -rp "Choose an option: " opcion
+
 
     # case for execute the fuctions
     case $opcion in
