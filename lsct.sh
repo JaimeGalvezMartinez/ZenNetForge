@@ -4694,10 +4694,10 @@ shutdown_system() {
 }
 PXE_Setup () {
 
-
 echo -e "${BLUE}${BOLD}===================================================================${NC}"
 echo -e "${CYAN}${BOLD}                            iVentoy PXE Setup${NC}"
- echo -e "${BLUE}${BOLD}===================================================================${NC}"
+echo -e "${BLUE}${BOLD}===================================================================${NC}"
+echo
 # Colors for messages
 RED="\e[31m"
 GREEN="\e[32m"
