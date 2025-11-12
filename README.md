@@ -24,7 +24,7 @@ chmod +x ZenNet.sh
 
 sudo su
 
-./ZenNet.sh
+./lsct.sh
 ```
 
 ## License
