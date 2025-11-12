@@ -18,9 +18,9 @@ Clone the Repository (or copy the script directly from this repository):
 ```bash
 git clone https://github.com/JaimeGalvezMartinez/linux-server-config-toolkit.git
 
-cd ZenNetForge
+cd linux-server-config-toolkit
 
-chmod +x ZenNet.sh
+chmod +x lsct.sh
 
 sudo su
 
