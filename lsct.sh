@@ -558,7 +558,7 @@ function show_menu {
   echo "4) Install graphical environment (optional)"
   echo "5) Post-installation tasks"
   echo "6) Run everything in order"
-  echo "0) Exit"
+  echo -e "${RED}${BOLD}0) Exit ${NC}"
 echo -e "${BLUE}${BOLD}===================================================================${NC}"
 }
 
