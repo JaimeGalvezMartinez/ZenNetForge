@@ -549,9 +549,9 @@ function post_install {
 
 function show_menu {
   clear
-  echo "========================================================"
+  echo -e "${BLUE}${BOLD}===================================================================${NC}"
   echo "       Zentyal 8.0 Installer - Ubuntu 22.04 or later"
-  echo "========================================================"
+  echo -e "${BLUE}${BOLD}===================================================================${NC}"
   echo "1) Check system requirements"
   echo "2) Configure repositories"
   echo "3) Install Zentyal"
@@ -559,7 +559,7 @@ function show_menu {
   echo "5) Post-installation tasks"
   echo "6) Run everything in order"
   echo "0) Exit"
-  echo "========================================================="
+echo -e "${BLUE}${BOLD}===================================================================${NC}"
 }
 
 while true; do
