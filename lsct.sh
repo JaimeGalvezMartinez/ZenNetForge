@@ -28,9 +28,9 @@ setup_vaultwarden_in_docker () {
 
 set -e
 
-echo "=============================================="
-echo "🚀 Vaultwarden Installer with HTTPS Proxy"
-echo "=============================================="
+echo -e "${RED}${BOLD}"=============================================="
+echo -e "${GREEN}${BOLD}"  🚀 Vaultwarden Installer with HTTPS Proxy"
+echo -e "${RED}${BOLD}"=============================================="
 echo ""
 
 # === USER INPUT ===
@@ -89,7 +89,7 @@ done
 
 # === SSL METADATA INPUT ===
 echo ""
-echo "🔧 SSL Certificate Metadata (press Enter to use defaults):"
+echo -e "${GREEN}${BOLD} "🔧 SSL Certificate Metadata (press Enter to use defaults):"
 read -rp "🌍 Country Code (default ES): " SSL_COUNTRY
 SSL_COUNTRY=${SSL_COUNTRY:-ES}
 
@@ -112,7 +112,7 @@ SSL_DIR="$VAULT_DIR/ssl"
 NGINX_CONF="$VAULT_DIR/nginx.conf"
 
 echo ""
-echo "Configuration summary:"
+ echo -e "${GREEN}${BOLD}"Configuration summary:"
 echo "----------------------------------------------"
 echo "📂 Folder:            $VAULT_DIR"
 echo "🔢 HTTP internal:     $HTTP_PORT_INTERNAL"
@@ -150,7 +150,7 @@ install_docker() {
 }
 
 generate_certificate() {
-    echo "🔒 Generating self-signed certificate..."
+    echo -e "${GREEEN}${BOLD} "🔒 Generating self-signed certificate..."
     mkdir -p "$SSL_DIR"
     openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
         -keyout "$SSL_DIR/selfsigned.key" \
@@ -187,7 +187,7 @@ EOF
 }
 
 create_compose() {
-    echo "🧱 Creating docker-compose.yml..."
+    echo -e "${GREEN}${BOLD} "🧱 Creating docker-compose.yml..."
     mkdir -p "$VAULT_DIR"
 
     cat > "$VAULT_DIR/docker-compose.yml" <<EOF
