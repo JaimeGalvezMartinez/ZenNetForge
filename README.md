@@ -1,4 +1,4 @@
-# ZenNetForge
+# Linux Server Configuration Toolkit v3.3 
 ZenNet is open source script that configure a gateway server, DHCP Server and more..., released under the GNU General Public License (GPL) and runs on top of Ubuntu GNU/Linux.
 
 With this script you can configure an ubuntu system as if it were a gateway, being able to configure a DHCP server (with mac filter), Firewall, configure ACL, OpenVPN Server, Preebot eXecution Enviroment Server (PXE), Mail Server, OpenLDAP/Kerberos, Samba, CUPS Server and more.
