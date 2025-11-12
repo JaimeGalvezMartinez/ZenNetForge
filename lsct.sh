@@ -1,16 +1,25 @@
 
  
 #!/bin/bash
-# Version 2.8 - september 2025
+# Version 3.2 - november 2025
 # Developer: Jaime Galvez (TheHellishPandaa)
 # Description: Bash script for configuring a Linux based Server
 # If you like my work, please support it with a start in my github´s profile
 
 clear
 
+# === COLORES ===
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[0;33m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m' # No Color
+
 # Check if exec in superuser permissions. 
 if [ $EUID -ne 0 ]; then
-   echo "This script must be run with superuser permissions (sudo su)"
+   echo -e "${RED}${BOLD}This script must be run with superuser permissions (sudo su)${NC}"
    exit 1
 fi
 
@@ -1765,14 +1774,15 @@ nextcloud_install(){
 
 # Interactive menu for capturing values
 
-echo "==========================================================="
-echo "============= Nextcloud Installation ======================"
-echo "==========================================================="
-echo "==========================================================="
-echo "================== by TheHellishPandaa  ==================="
-echo "================ GitHub: TheHellishPandaa ================="
-echo "==========================================================="
+echo "================================================================="
+echo "================== Nextcloud Installation ======================="
+echo "================================================================="
+echo "================================================================="
+echo "================= by Jaime Galvez Martinez  ====================="
+echo "================ GitHub: Jaime Galvez Martinez =================="
+echo "================================================================="
 echo ""
+
 # Check if the user is root
 if [[ $EUID -ne 0 ]]; then
     echo "This script must be run as root." 
@@ -4814,14 +4824,16 @@ echo -e "${GREEN}🔹 To access the PXE Web UI, go to http://x.x.x.x:26000 or lo
 # Main Menu
 while true; do
 
-    echo "==================================================================="
-    echo "========================= ZenNet Forge ============================"
-    echo "==================================================================="
-    echo "==================== by: Jaime Galvez Martinez ===================="
-    echo "=================== GitHub: JaimeGalvezMartinez ==================="
-    echo "==================================================================="
-    echo ""
-    echo "1) Configure network interfaces"
+# Nuevo bloque de bienvenida con colores
+echo -e "${BLUE}${BOLD}===================================================================${NC}"
+echo -e "${CYAN}${BOLD}============= Linux Server Configuration Toolkit v3.3 =============${NC}"
+echo -e "${BLUE}${BOLD}===================================================================${NC}"
+echo -e "${CYAN}${BOLD}==================== by: Jaime Galvez Martinez ====================${NC}"
+echo -e "${CYAN}${BOLD}=================== GitHub: JaimeGalvezMartinez ===================${NC}"
+echo -e "${BLUE}${BOLD}===================================================================${NC}"
+echo ""    
+
+echo "1) Configure network interfaces"
     echo "2) Configure gateway server"
     echo "3) Configure DHCP server"
     echo "4) Install forwarder + cache DNS "
@@ -4848,7 +4860,7 @@ while true; do
 	echo "25) Install Vaultwarden with Docker + Reverse Nginx HTTPS with self-signed certificates"
 	echo "26) Reboot System "
 	echo "27) Shutdown System "
-	echo "28) Exit "
+	echo "0) Exit "
     read -p "Choose an option: " opcion
 
     # case for execute the fuctions
@@ -4880,7 +4892,7 @@ while true; do
 	25) setup_vaultwarden_in_docker;;
 	26) reboot_system ;;
 	27) shutdown_system ;;
-    28) echo "Exiting. Goodbye!"; break ;;
+    0) echo "Exiting. Goodbye!"; break ;;
         *) echo "Invalid option." ;;
     esac
 done
