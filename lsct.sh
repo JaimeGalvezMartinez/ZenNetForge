@@ -1841,12 +1841,12 @@ read -p "Enter the domain or IP to access Nextcloud: " DOMAIN
 echo -e "${GREEN}${BOLD}========================================================${NC}"
 echo -e "${GREEN}${BOLD}============ Configuration Summary =====================${NC}"
 echo -e "${GREEN}${BOLD}========================================================${NC}"
-echo -e "${GREEN}Nextcloud Version:     ${BOLD}$NEXTCLOUD_VERSION${NC}"
-echo -e "${GREEN}Database:              ${BOLD}$DB_NAME${NC}"
-echo -e "${GREEN}Database User:         ${BOLD}$DB_USER${NC}"
-echo -e "${GREEN}Installation Path:     ${BOLD}$NEXTCLOUD_PATH${NC}"
-echo -e "${GREEN}Data Directory:        ${BOLD}$DATA_DIRECTORY${NC}"
-echo -e "${GREEN}Domain or IP:          ${BOLD}$DOMAIN${NC}"
+echo -e "${GREEN}${BOLD}Nextcloud Version:     ${BOLD}$NEXTCLOUD_VERSION${NC}"
+echo -e "${GREEN}${BOLD}Database:              ${BOLD}$DB_NAME${NC}"
+echo -e "${GREEN}${BOLD}Database User:         ${BOLD}$DB_USER${NC}"
+echo -e "${GREEN}${BOLD}Installation Path:     ${BOLD}$NEXTCLOUD_PATH${NC}"
+echo -e "${GREEN}${BOLD}Data Directory:        ${BOLD}$DATA_DIRECTORY${NC}"
+echo -e "${GREEN}${BOLD}Domain or IP:          ${BOLD}$DOMAIN${NC}"
 echo -e "${GREEN}${BOLD}========================================================${NC}"
 
 
@@ -1856,7 +1856,7 @@ echo -e "Do you want to proceed with the installation? (y/n): "
 read -n 1 CONFIRM
 echo
 if [[ "$CONFIRM" != [yY] ]]; then
-    echo -e "${GREEN}Installation canceled."
+    echo -e "${RED}${BOLD}Installation canceled."
     exit 1
 fi
 
@@ -1930,9 +1930,9 @@ echo "Please access http://$DOMAIN/nextcloud to complete setup in the browser."
 moodle_install(){
 # Script that configure moodle 
 
-echo -e "${GREEN}----------------------------------------------"
-echo -e "${GREEN}-------------- MOODLE SETUP ------------------"
-echo -e "${GREEN}----------------------------------------------"
+echo -e "${GREEN}${BOLD}=============================================="
+echo -e "${GREEN}${BOLD]============== MOODLE SETUP =================="
+echo -e "${GREEN}${BOLD}=============================================="
 
 # Prompt for database name
 read -p "Enter the database name (default: moodle_db): " DB_NAME
