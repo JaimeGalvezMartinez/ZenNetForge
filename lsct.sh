@@ -2001,7 +2001,7 @@ echo -e "${GREEN}Data Directory: ${BOLD}$data_directory${NC}"
 echo ""
 
 # Confirmation to proceed with the installation
-read -rp "$(echo -e ${GREEN}Do you want to proceed with the installation? (y/n): ${NC})" CONFIRM
+read -rp "${GREEN}Do you want to proceed with the installation? (y/n): ${NC}" CONFIRM
 echo
 
 if [[ ! "$CONFIRM" =~ ^[yY]$ ]]; then
