@@ -28,9 +28,9 @@ setup_vaultwarden_in_docker () {
 
 set -e
 
-echo -e "${RED}${BOLD}"=============================================="
-echo -e "${GREEN}${BOLD}"  🚀 Vaultwarden Installer with HTTPS Proxy"
-echo -e "${RED}${BOLD}"=============================================="
+echo -e ${RED}${BOLD}"=============================================="
+echo -e ${GREEN}${BOLD}"  🚀 Vaultwarden Installer with HTTPS Proxy"
+echo -e ${RED}${BOLD}"=============================================="
 echo ""
 
 # === USER INPUT ===
@@ -89,7 +89,7 @@ done
 
 # === SSL METADATA INPUT ===
 echo ""
-echo -e "${GREEN}${BOLD} "🔧 SSL Certificate Metadata (press Enter to use defaults):"
+echo -e ${GREEN}${BOLD} "🔧 SSL Certificate Metadata (press Enter to use defaults):"
 read -rp "🌍 Country Code (default ES): " SSL_COUNTRY
 SSL_COUNTRY=${SSL_COUNTRY:-ES}
 
@@ -187,7 +187,7 @@ EOF
 }
 
 create_compose() {
-    echo -e "${GREEN}${BOLD} "🧱 Creating docker-compose.yml..."
+    echo -e ${GREEN}${BOLD} "🧱 Creating docker-compose.yml..."
     mkdir -p "$VAULT_DIR"
 
     cat > "$VAULT_DIR/docker-compose.yml" <<EOF
@@ -487,7 +487,7 @@ echo "It is highly recommended that no additional packages such as MySQL are ins
 echo "otherwise, the installation may fail and leave the server unstable."
 
 read -rp "Continue with installation? (y/n): " CONFIRM
-[[ "$CONFIRM" =~ ^[yY]$ ]] || { echo "❌ Installation cancelled."; exit 1; }
+[[ "$CONFIRM" =~ ^[yY]$ ]] || { echo -e ${RED}${BOLD}"❌ Installation cancelled."; exit 1; }
 
   echo -e "${GREEN}>>> Starting Zentyal installation...${NC}\n"
 
@@ -654,7 +654,7 @@ configure_firewall() {
         echo "7) Enable UFW"
         echo "8) Disable UFW"
         echo "9) Delete rule by name (e.g., 'Apache Full')"
-        echo "10) Exit"
+        echo -e ${RED}${BOLD}"0) Exit"
         echo "================================================================="
         read -rp "Choose an option: " option
 
@@ -730,7 +730,7 @@ configure_firewall() {
                     echo "No rule name entered."
                 fi
                 ;;
-            10)
+            0)
                 echo "Exiting firewall configuration."
                 break
                 ;;
@@ -833,8 +833,8 @@ configure_network() {
     echo "Do you want to configure a Static IP or use DHCP?"
     echo "1) Static IP"
     echo "2) DHCP (Automatic)"
-    read -rp "Select an option (1 or 2): " option
-
+    read -rp "Select an option (1, 2 or 0): " option
+	
     # Initialize variables
     ip_address=""
     cidr=""
