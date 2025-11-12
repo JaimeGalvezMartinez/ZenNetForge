@@ -550,7 +550,7 @@ function post_install {
 function show_menu {
   clear
   echo -e "${BLUE}${BOLD}===================================================================${NC}"
-  echo "       Zentyal 8.0 Installer - Ubuntu 22.04 or later"
+ echo -e "${CYAN}${BOLD}===================================================================${NC}"
   echo -e "${BLUE}${BOLD}===================================================================${NC}"
   echo "1) Check system requirements"
   echo "2) Configure repositories"
