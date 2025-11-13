@@ -1,6 +1,6 @@
 #!/bin/bash
 # Version 3.2 - november 2025
-# Developer: Jaime Galvez (TheHellishPandaa)
+# Developer: Jaime Galvez (https://github.com/JaimeGalvezMartinez)
 # Description: Bash script for configuring a Linux based Server
 # If you like my work, please support it with a start in my github´s profile
 
@@ -146,6 +146,8 @@ echo "----------------------------------------------"
 read -rp "Continue with installation? (y/n): " CONFIRM
 [[ "$CONFIRM" =~ ^[yY]$ ]] || { echo -e "${RED}❌ Installation cancelled.${NC}"; exit 1; }
 
+echo -e "${CYAN}${BOLD} ******************************************************${NC}"
+
 # ================= FUNCTIONS =================
 
 install_docker() {
@@ -174,7 +176,7 @@ generate_certificate() {
 }
 
 create_nginx_conf() {
-    echo "🧱 Creating nginx.conf..."
+      echo -e "${GREEN}${BOLD}🧱 Creating nginx.conf..."
     mkdir -p "$VAULT_DIR"
     cat > "$NGINX_CONF" <<EOF
 server {
