@@ -393,12 +393,12 @@ function check_ubuntu {
   UBUNTU_VERSION_NUM=$(lsb_release -sr)
 
   if dpkg --compare-versions "$UBUNTU_VERSION_NUM" lt "22.04"; then
-      echo -e "${RED}  You are running Ubuntu ${UBUNTU_VERSION_NUM}. Only Ubuntu 22.04 LTS or later is supported.${NC}"
+      echo -e "${RED}${BOLD}You are running Ubuntu ${UBUNTU_VERSION_NUM}. Only Ubuntu 22.04 LTS or later is supported.${NC}"
       exit 1
   fi
 
 if ! lsb_release -d | grep -qE "Ubuntu 22\.04(\.[0-9]+)? LTS"; then
-    echo -e "${RED}  Invalid OS. Ubuntu 22.04.x LTS is required. For Ubuntu 20.04, please, use Zentyal 7.0${NC}"
+    echo -e "${RED}${BOLD}Invalid OS. Ubuntu 22.04.x LTS is required. For Ubuntu 20.04, please, use Zentyal 7.0${NC}"
     exit 1
 fi
 
@@ -1049,7 +1049,7 @@ configure_dhcp_server() {
     echo "2) Block an IP"
     echo "3) Change Network Configuration"
     echo "4) Install DHCP Server"
-    echo "5) Exit"
+    echo -e "${RED}${BOLD}0) Exit"
     read -p "Choose an option: " dhcp_option
     case $dhcp_option in
         1)
@@ -1137,7 +1137,7 @@ subnet $subnet netmask $subnet_mask {
 }
 EOL
             ;;
-        5)
+        0)
             echo "Exiting DHCP configuration."
             return ;;
         *)
@@ -1614,7 +1614,7 @@ send_to_remote() {
 
     echo "$(date +"%Y-%m-%d %H:%M:%S") - Checking connection to $REMOTE_HOST on port $REMOTE_PORT..." | tee -a "$LOG_FILE"
     if ! nc -z "$REMOTE_HOST" "$REMOTE_PORT"; then
-        echo "$(date +"%Y-%m-%d %H:%M:%S") - Error: Could not connect to $REMOTE_HOST on port $REMOTE_PORT." | tee -a "$LOG_FILE"
+        echo -e "${RED}${BOLD}$(date +"%Y-%m-%d %H:%M:%S") - Error: Could not connect to $REMOTE_HOST on port $REMOTE_PORT." | tee -a "$LOG_FILE"
         exit 1
     fi
 
@@ -1624,7 +1624,7 @@ send_to_remote() {
     if [ $? -eq 0 ]; then
         echo "$(date +"%Y-%m-%d %H:%M:%S") - File successfully sent" | tee -a "$LOG_FILE"
     else
-        echo "$(date +"%Y-%m-%d %H:%M:%S") - Error sending the file" | tee -a "$LOG_FILE"
+        echo -e "${RED}${BOLD}$(date +"%Y-%m-%d %H:%M:%S") - Error sending the file" | tee -a "$LOG_FILE"
     fi
 }
 
